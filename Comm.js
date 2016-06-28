@@ -26,6 +26,8 @@ var Comm = {
 			Comm[category].instances[type].push(this);
 			var messager_method = 'putMessage';
 
+			var worker;
+
 			this.nextcbid = 1;
 			this.callbackReceptacle = {};
 			this.reportProgress = function(aProgressArg) {
