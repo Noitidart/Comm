@@ -465,5 +465,3 @@ var Comm = {
 		}
 	}
 };
-
-var EXPORTED_SYMBOLS = ['Comm'];
