@@ -6,7 +6,7 @@ if (typeof(gCommScope) == 'undefined') { // optional global, devuser can specify
 	var gCommScope = this;
 }
 
-const Comm = {
+var Comm = {
 	unregister_generic: function(category, type, self) {
 		var instances = Comm[category].instances[type];
 		var l = instances.length;
@@ -465,3 +465,5 @@ const Comm = {
 		}
 	}
 };
+
+var EXPORTED_SYMBOLS = ['Comm'];
