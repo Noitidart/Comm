@@ -33,7 +33,7 @@ const Comm = {
 				this.THIS[messager_method](this.cbid, aProgressArg);
 			};
 
-			this.[messager_method] = function(aMethod, aArg, aCallback) {
+			this[messager_method] = function(aMethod, aArg, aCallback) {
 				// aMethod is a string - the method to call in framescript
 				// aCallback is a function - optional - it will be triggered when aMethod is done calling
 
@@ -166,7 +166,7 @@ const Comm = {
 				this.THIS[messager_method](this.messageManager, this.cbid, aProgressArg);
 			};
 
-			this.[messager_method] = function(aMessageManager, aMethod, aArg, aCallback) {
+			this[messager_method] = function(aMessageManager, aMethod, aArg, aCallback) {
 				// console.log('Comm.'+category+'.'+type+' - in messager_method:', aMessageManager, aMethod, aArg, aCallback);
 
 				var cbid = null;
@@ -255,7 +255,7 @@ const Comm = {
 				this.THIS[messager_method](this.cbid, aProgressArg);
 			};
 
-			this.[messager_method] = function(aMethod, aArg, aCallback) {
+			this[messager_method] = function(aMethod, aArg, aCallback) {
 				// aMethod is a string - the method to call in framescript
 				// aCallback is a function - optional - it will be triggered when aMethod is done calling
 				var aTransfers;
@@ -390,7 +390,7 @@ const Comm = {
 				this.THIS[messager_method](this.cbid, aProgressArg);
 			};
 
-			this.[messager_method] = function() {
+			this[messager_method] = function() {
 
 			};
 
@@ -415,7 +415,7 @@ const Comm = {
 				this.THIS[messager_method](this.cbid, aProgressArg);
 			};
 
-			this.[messager_method] = function() {
+			this[messager_method] = function() {
 
 			};
 
@@ -441,7 +441,7 @@ const Comm = {
 				this.THIS[messager_method](this.cbid, aProgressArg);
 			};
 
-			this.[messager_method] = function() {
+			this[messager_method] = function() {
 
 			};
 
