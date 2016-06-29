@@ -761,25 +761,25 @@ var CommHelper = {
 	cache: {},
 	bootstrap: {
 		get callInMainworker() {
-			if (!CommHelper.callInMainworker) {
+			if (!CommHelper.cache.callInMainworker) {
 				CommHelper.cache.callInMainworker = Comm.callInX.bind(null, gWkComm, null);
 			}
 			return CommHelper.cache.callInMainworker;
 		},
 		get callInContent1() {
-			if (!CommHelper.callInContent1) {
+			if (!CommHelper.cache.callInContent1) {
 				CommHelper.cache.callInContent1 = Comm.callInX.bind(null, gBlahComm1, null);
 			}
 			return CommHelper.cache.callInContent1;
 		},
 		get callInContentinframescript() {
-			if (!CommHelper.callInContentinframescript) {
+			if (!CommHelper.cache.callInContentinframescript) {
 				CommHelper.cache.callInContentinframescript = Comm.callInX.bind(null, gFsComm, 'callInContent');
 			}
 			return CommHelper.cache.callInContentinframescript;
 		},
 		get callInFramescript() {
-			if (!CommHelper.callInFramescript) {
+			if (!CommHelper.cache.callInFramescript) {
 				CommHelper.cache.callInFramescript = Comm.callInX.bind(null, gFsComm, null);
 			}
 			return CommHelper.cache.callInFramescript;
@@ -787,13 +787,13 @@ var CommHelper = {
 	},
 	mainworker: {
 		get callInBootstrap() {
-			if (!CommHelper.callInBootstrap) {
+			if (!CommHelper.cache.callInBootstrap) {
 				CommHelper.cache.callInBootstrap = Comm.callInX.bind(null, gBsComm, null);
 			}
 			return CommHelper.cache.callInBootstrap;
 		},
 		get callInChildworker1() {
-			if (!CommHelper.callInChildworker1) {
+			if (!CommHelper.cache.callInChildworker1) {
 				CommHelper.cache.callInChildworker1 = Comm.callInX.bind(null, gBlahComm1, null);
 			}
 			return CommHelper.cache.callInChildworker1;
@@ -829,7 +829,8 @@ var CommHelper = {
 	},
 	framescript: {
 		get callInBootstrap() {
-			if (!CommHelper.callInBootstrap) {
+			if (!CommHelper.cache.callInBootstrap) {
+				console.error('from Comm.js, gBsComm:', gBsComm, 'rawr:', rawr);
 				CommHelper.cache.callInBootstrap = Comm.callInX.bind(null, gBsComm, null);
 			}
 			return CommHelper.cache.callInBootstrap;
