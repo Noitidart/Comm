@@ -481,7 +481,7 @@ var Comm = {
 
 			self.onmessage = this.listener;
 		},
-		framescript: function() {
+		framescript: function(aChannelId) {
 			var type = 'framescript';
 			var category = 'client';
 			var scope = gCommScope;
