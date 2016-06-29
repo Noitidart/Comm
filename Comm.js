@@ -715,7 +715,7 @@ var Comm = {
 		if (aMethod.constructor.name == 'Object') {
 			var aReportProgress = aArg;
 			var aCommFrom = aCallback;
-			{m:aMethod, a:aArg} = aMethod;
+			({m:aMethod, a:aArg} = aMethod);
 			if (!aCallInMethod) {
 				if (aReportProgress) { // if it has aReportProgress then the scope has a callback waiting for reply
 					var deferred = new Deferred();
