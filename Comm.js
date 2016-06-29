@@ -709,18 +709,40 @@ var Comm = {
 			var aReportProgress = aArg;
 			var aCommFrom = aCallback;
 			var {m:aMethod, a:aArg} = aMethod;
-			if (aReportProgress) { // if (wait) { // if it has aReportProgress then the scope has a callback waiting for reply
-				var deferred = new Deferred();
-				messagerMethod(aMethod, aArg, function(rez) {
-					if (rez && rez.__PROGRESS) {
-						aReportProgress(rez);
-					} else {
-						deferred.resolve(rez);
-					}
-				});
-				return deferred.promise;
+			if (!aCallInMethod) {
+				if (aReportProgress) { // if it has aReportProgress then the scope has a callback waiting for reply
+					var deferred = new Deferred();
+					messagerMethod(aMethod, aArg, function(rez) {
+						if (rez && rez.__PROGRESS) {
+							aReportProgress(rez);
+						} else {
+							deferred.resolve(rez);
+						}
+					});
+					return deferred.promise;
+				} else {
+					messagerMethod(aMethod, aArg);
+				}
 			} else {
-				messagerMethod(aMethod, aArg);
+				if (aReportProgress) { // if it has aReportProgress then the scope has a callback waiting for reply
+					var deferred = new Deferred();
+					messagerMethod(aCallInMethod, {
+						m: aMethod,
+						a: aArg
+					}, function(rez) {
+						if (rez && rez.__PROGRESS) {
+							aReportProgress(rez);
+						} else {
+							deferred.resolve(rez);
+						}
+					});
+					return deferred.promise;
+				} else {
+					messagerMethod(aCallInMethod, {
+						m: aMethod,
+						a: aArg
+					});
+				}
 			}
 		} else {
 			if (!aCallInMethod) {
