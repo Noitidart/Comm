@@ -6,6 +6,7 @@ if (typeof(gCommScope) == 'undefined') { // optional global, devuser can specify
 	var gCommScope = this;
 }
 
+var gCommContentFrameMessageManager = this;
 var Comm = {
 	unregister_generic: function(category, type, self) {
 		var instances = Comm[category].instances[type];
@@ -385,6 +386,8 @@ var Comm = {
 			Comm[category].instances[type].push(this);
 			var messager_method = 'putMessage';
 
+			var firstMethodCalled = false;
+
 			this.nextcbid = 1;
 			this.callbackReceptacle = {};
 			this.reportProgress = function(aProgressArg) {
@@ -392,23 +395,98 @@ var Comm = {
 				this.THIS[messager_method](this.cbid, aProgressArg);
 			};
 
-			this[messager_method] = function() {
+			this[messager_method] = function(aMethod, aArg, aCallback) {
+				var cbid = null;
+				if (typeof(aMethod) == 'number') {
+					// this is a response to a callack waiting in framescript
+					cbid = aMethod;
+					aMethod = null;
+				} else {
+					if (aCallback) {
+						cbid = this.nextcbid++;
+						this.callbackReceptacle[cbid] = aCallback;
+					}
+				}
 
+				var aTransfers;
+				if (aArg && aArg.__XFER) {
+					// if want to transfer stuff aArg MUST be an object, with a key __XFER holding the keys that should be transferred
+					// __XFER is either array or object. if array it is strings of the keys that should be transferred. if object, the keys should be names of the keys to transfer and values can be anything
+					aTransfers = [];
+					var __XFER = aArg.__XFER;
+					if (Array.isArray(__XFER)) {
+						for (var p of __XFER) {
+							aTransfers.push(aArg[p]);
+						}
+					} else {
+						// assume its an object
+						for (var p in __XFER) {
+							aTransfers.push(aArg[p]);
+						}
+					}
+				}
+
+				self.postMessage({
+					method: aMethod,
+					arg: aArg,
+					cbid
+				}, aTransfers);
 			};
 
-			this.listener = {
-			};
+			this.listener = function(e) {
+				var payload = e.data;
+				console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); //, 'e:', e);
+
+				if (payload.method) {
+					if (!firstMethodCalled) {
+						firstMethodCalled = true;
+						if (payload.method != 'init' && scope.init) {
+							this[messager_method]('triggerOnAfterInit', scope.init(undefined, this));
+						}
+					}
+					if (!(payload.method in scope)) { console.error('Comm.'+category+'.'+type+' - method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') } // dev line remove on prod
+					var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid}) : undefined, this);
+					// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
+					// console.log('Comm.'+category+'.'+type+' - rez_scope:', rez_scope);
+					if (payload.cbid) {
+						if (rez_scope && rez_scope.constructor.name == 'Promise') {
+							rez_scope.then(
+								function(aVal) {
+									console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
+									this[messager_method](payload.cbid, aVal);
+								}.bind(this),
+								genericReject.bind(null, 'rez_scope', 0)
+							).catch(genericCatch.bind(null, 'rez_scope', 0));
+						} else {
+							this[messager_method](payload.cbid, rez_scope);
+						}
+					}
+					// gets here on programtic init, as it for sure does not have a callback
+					if (payload.method == 'init') {
+						this[messager_method]('triggerOnAfterInit', rez_scope);
+					}
+				} else if (!payload.method && payload.cbid) {
+					// its a cbid
+					this.callbackReceptacle[payload.cbid](payload.arg, this);
+					if (payload.arg && !payload.arg.__PROGRESS) {
+						delete this.callbackReceptacle[payload.cbid];
+					}
+				}
+				else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
+			}.bind(this);
 
 			this.unregister = function() {
 				Comm.unregister_generic(category, type, this);
 			};
+
+			self.onmessage = this.listener;
 		},
 		framescript: function() {
 			var type = 'framescript';
 			var category = 'client';
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
-			var messager_method = 'putMessage';
+			var messager_method = 'copyMessage';
 
 			this.nextcbid = 1;
 			this.callbackReceptacle = {};
@@ -417,17 +495,67 @@ var Comm = {
 				this.THIS[messager_method](this.cbid, aProgressArg);
 			};
 
-			this[messager_method] = function() {
+			this[messager_method] = function(aMethod, aArg, aCallback) {
+				var cbid = null;
+				if (typeof(aMethod) == 'number') {
+					// this is a response to a callack waiting in framescript
+					cbid = aMethod;
+					aMethod = null;
+				} else {
+					if (aCallback) {
+						cbid = this.nextcbid++;
+						this.callbackReceptacle[cbid] = aCallback;
+					}
+				}
 
+				gCommContentFrameMessageManager.sendAsyncMessage(aChannelId, {
+					method: aMethod,
+					arg: aArg,
+					cbid
+				});
 			};
 
 			this.listener = {
+				receiveMessage: function(e) {
+					var messageManager = e.target.messageManager;
+					var browser = e.target;
+					var payload = e.data;
+					console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); //, 'e:', e);
+					// console.log('this in receiveMessage bootstrap:', this);
 
+					if (payload.method) {
+						if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
+						var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid}) : undefined, this);
+						// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
+						if (payload.cbid) {
+							if (rez_scope && rez_scope.constructor.name == 'Promise') {
+								rez_scope.then(
+									function(aVal) {
+										console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
+										this[messager_method](payload.cbid, aVal);
+									}.bind(this),
+									genericReject.bind(null, 'rez_scope', 0)
+								).catch(genericCatch.bind(null, 'rez_scope', 0));
+							} else {
+								this[messager_method](payload.cbid, rez_scope);
+							}
+						}
+					} else if (!payload.method && payload.cbid) {
+						// its a cbid
+						this.callbackReceptacle[payload.cbid](payload.arg, messageManager, browser, this);
+						if (payload.arg && !payload.arg.__PROGRESS) {
+							delete this.callbackReceptacle[payload.cbid];
+						}
+					}
+					else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
+				}.bind(this)
 			};
 
 			this.unregister = function() {
 				Comm.unregister_generic(category, type, this);
 			};
+
+			gCommContentFrameMessageManager.addMessageListener(aChannelId, this.listener);
 		},
 		content: function() {
 			var type = 'content';
@@ -436,6 +564,9 @@ var Comm = {
 			Comm[category].instances[type].push(this);
 			var messager_method = 'putMessage';
 
+			var handshakeComplete = false; // indicates this[messager_method] will now work
+			var port;
+
 			this.nextcbid = 1;
 			this.callbackReceptacle = {};
 			this.reportProgress = function(aProgressArg) {
@@ -443,17 +574,110 @@ var Comm = {
 				this.THIS[messager_method](this.cbid, aProgressArg);
 			};
 
-			this[messager_method] = function() {
+			this[messager_method] = function(aMethod, aArg, aCallback) {
+				// determine aTransfers
+				var aTransfers;
+				var xferScope;
+				var xferIterable;
+				if (aArg) {
+					if (aArg.__XFER) {
+						xferIterable = aArg.__XFER;
+						xferScope = aArg;
+					} else if (aArg.a && aArg.m && aArg.a.__XFER) { // special handle for callIn***
+						xferIterable = aArg.a.__XFER;
+						xferScope = aArg.a;
+					}
+				}
+				if (xferScope) {
+					// if want to transfer stuff aArg MUST be an object, with a key __XFER holding the keys that should be transferred
+					// __XFER is either array or object. if array it is strings of the keys that should be transferred. if object, the keys should be names of the keys to transfer and values can be anything
+					aTransfers = [];
+					if (Array.isArray(xferIterable)) {
+						for (var p of xferIterable) {
+							aTransfers.push(xferScope[p]);
+						}
+					} else {
+						// assume its an object
+						for (var p in xferIterable) {
+							aTransfers.push(xferScope[p]);
+						}
+					}
+				}
 
+				var cbid = null;
+				if (typeof(aMethod) == 'number') {
+					// this is a response to a callack waiting in framescript
+					cbid = aMethod;
+					aMethod = null;
+				} else {
+					if (aCallback) {
+						cbid = this.nextcbid++;
+						this.callbackReceptacle[cbid] = aCallback;
+					}
+				}
+
+				port.postMessage({
+					method: aMethod,
+					arg: aArg,
+					cbid
+				}, aTransfers);
 			};
 
-			this.listener = {
+			this.listener = function(e) {
+				var payload = e.data;
+				console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); // , 'e:', e, 'this:', this);
 
-			};
+				if (payload.method) {
+					if (!(payload.method in scope)) { console.error('Comm.'+category+'.'+type+' - method of "' + payload.method + '" not in WINDOW'); throw new Error('method of "' + payload.method + '" not in WINDOW') } // dev line remove on prod
+					var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid}) : undefined, this);
+					// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
+					// console.log('Comm.'+category+'.'+type+' - rez_scope:', rez_scope);
+					if (payload.cbid) {
+						if (rez_scope && rez_scope.constructor.name == 'Promise') {
+							rez_scope.then(
+								function(aVal) {
+									console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
+									this[messager_method](payload.cbid, aVal);
+								}.bind(this),
+								genericReject.bind(null, 'rez_scope', 0)
+							).catch(genericCatch.bind(null, 'rez_scope', 0));
+						} else {
+							this[messager_method](payload.cbid, rez_scope);
+						}
+					}
+				} else if (!payload.method && payload.cbid) {
+					// its a cbid
+					this.callbackReceptacle[payload.cbid](payload.arg, this);
+					if (payload.arg && !payload.arg.__PROGRESS) {
+						delete this.callbackReceptacle[payload.cbid];
+					}
+				}
+				else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
+			}.bind(this);
 
 			this.unregister = function() {
 				Comm.unregister_generic(category, type, this);
 			};
+
+			var winMsgListener = function(e) {
+				var data = e.data;
+				// console.log('Comm.'+category+'.'+type+' - incoming window message, data:', uneval(data)); //, 'source:', e.source, 'ports:', e.ports);
+				switch (data.topic) {
+					case 'contentComm_handshake':
+
+							window.removeEventListener('message', winMsgListener, false);
+							port = data.port2;
+							port.onmessage = this.listener;
+							this[messager_method]('Comm.'+category+'.'+type+' - contentComm_handshake_finalized');
+							handshakeComplete = true;
+							if (onHandshakeComplete) {
+								onHandshakeComplete(true);
+							}
+						break; default: console.error('Comm.'+category+'.'+type+' - unknown topic, data:', data);
+				}
+			}.bind(this);
+
+			window.addEventListener('message', winMsgListener, false);
 		},
 		instances: {worker:[], framescript:[], content:[]},
 		unregAll: function(aType) {
