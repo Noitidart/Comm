@@ -695,6 +695,7 @@ var Comm = {
 	},
 	callInX: function(aCommTo, aCallInMethod, aMethod, aArg, aCallback, aMessageManager) {
 		// MUST not be used directly, MUSt have aCommTo and aCallInMethod bounded
+		aCommTo = gCommScope[aCommTo];
 		var messagerMethod;
 		if (aCommTo.copyMessage) {
 			if (aMessageManager) {
@@ -760,100 +761,35 @@ var Comm = {
 	}
 };
 
+// these helpers are placed in the respective scope. like bootstrap section are all methods to be placed in bootstrap
+// all helpers have 3 arguments, aMethod, aArg, aCallback EXCEPT for callInFramescript which has 4th arg of aMessageManager
 var CommHelper = {
 	bootstrap: {
-		get callInMainworker() {
-			return Comm.callInX.bind(null, gWkComm, null);
-		},
-		get callInContent1() {
-			return Comm.callInX.bind(null, gBlahComm1, null);
-		},
-		get callInContentinframescript() {
-			return Comm.callInX.bind(null, gFsComm, 'callInContent');
-		},
-		get callInFramescript() {
-			return Comm.callInX.bind(null, gFsComm, null);
-		}
+		callInMainworker: Comm.callInX.bind(null, 'gWkComm', null),
+		callInContent1: Comm.callInX.bind(null, 'gBlahComm1', null),
+		callInContentinframescript: Comm.callInX.bind(null, 'gFsComm', 'callInContent'),
+		callInFramescript: Comm.callInX.bind(null, 'gFsComm', null)
 	},
 	mainworker: {
-		get callInBootstrap() {
-			return Comm.callInX.bind(null, gBsComm, null);
-		},
-		get callInChildworker1() {
-			return Comm.callInX.bind(null, gBlahComm1, null);
-		}
+		callInBootstrap: Comm.callInX.bind(null, 'gBsComm', null),
+		callInChildworker1: Comm.callInX.bind(null, 'gBlahComm1', null)
 	},
 	childworker: {
-		get callInMainworker() {
-			return Comm.callInX.bind(null, gWkComm, null);
-		},
-		get callInBootstrap() {
-			return Comm.callInX.bind(null, gWkComm, 'callInBootstrap');
-		}
+		callInMainworker: Comm.callInX.bind(null, 'gWkComm', null),
+		callInBootstrap: Comm.callInX.bind(null, 'gWkComm', 'callInBootstrap')
 	},
 	content: {
-		get callInMainworker() {
-			return Comm.callInX.bind(null, gBsComm, 'callInMainworker');
-		},
-		get callInBootstrap() {
-			return Comm.callInX.bind(null, gBsComm, null);
-		}
+		callInMainworker: Comm.callInX.bind(null, 'gBsComm', 'callInMainworker'),
+		callInBootstrap: Comm.callInX.bind(null, 'gBsComm', null)
 	},
 	framescript: {
-		get callInBootstrap() {
-			return Comm.callInX.bind(null, gBsComm, null);
-		},
-		get callInContent() {
-			return Comm.callInX.bind(null, gWinComm, null);
-		},
-		get callInMainworker() {
-			return Comm.callInX.bind(null, gBsComm, 'callInMainworker');
-		}
+		callInBootstrap: Comm.callInX.bind(null, 'gBsComm', null),
+		callInContent: Comm.callInX.bind(null, 'gWinComm', null),
+		callInMainworker: Comm.callInX.bind(null, 'gBsComm', 'callInMainworker')
 	},
 	contentinframescript: {
-		get callInFramescript() {
-			return Comm.callInX.bind(null, gFsComm, null);
-		},
-		get callInMainworker() {
-			return Comm.callInX.bind(null, gFsComm, 'callInMainworker');
-		},
-		get callInBootstrap() {
-			return Comm.callInX.bind(null, gFsComm, 'callInBootstrap');
-		}
+		callInFramescript: Comm.callInX.bind(null, 'gFsComm', null),
+		callInMainworker: Comm.callInX.bind(null, 'gFsComm', 'callInMainworker'),
+		callInBootstrap: Comm.callInX.bind(null, 'gFsComm', 'callInBootstrap')
 	}
 };
-
-/*
-// these helpers are placed in the respecting scope. like bootstrap section are all methods to be placed in bootstrap
-// all helpers have 3 arguments, aMethod, aArg, aCallback EXCEPT for callInFramescript which has 4th arg of aMessageManager
-helper: {
-	bootstrap: {
-		callInMainworker: Comm.callInX.bind(null, gWkComm, null),
-		callInContent1: Comm.callInX.bind(null, gBlahComm1, null),
-		callInContentinframescript: Comm.callInX.bind(null, gFsComm, 'callInContent'),
-		callInFramescript: Comm.callInX.bind(null, gFsComm, null)
-	},
-	mainworker: {
-		callInBootstrap: Comm.callInX.bind(null, gBsComm, null),
-		callInChildworker1: Comm.callInX.bind(null, gBlahComm1, null)
-	},
-	childworker: {
-		callInMainworker: Comm.callInX.bind(null, gWkComm, null),
-		callInBootstrap: Comm.callInX.bind(null, gWkComm, 'callInBootstrap')
-	},
-	content: {
-		callInMainworker: Comm.callInX.bind(null, gBsComm, 'callInMainworker'),
-		callInBootstrap: Comm.callInX.bind(null, gBsComm, null)
-	},
-	framescript: {
-		callInBootstrap: Comm.callInX.bind(null, gBsComm, null),
-		callInContent: Comm.callInX.bind(null, gWinComm, null),
-		callInMainworker: Comm.callInX.bind(null, gBsComm, 'callInMainworker')
-	},
-	contentinframescript: {
-		callInFramescript: Comm.callInX.bind(null, gFsComm, null),
-		callInMainworker: Comm.callInX.bind(null, gFsComm, 'callInMainworker'),
-		callInBootstrap: Comm.callInX.bind(null, gFsComm, 'callInBootstrap')
-	}
-}
-*/
