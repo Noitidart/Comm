@@ -670,6 +670,7 @@ var Comm = {
 				switch (data.topic) {
 					case 'contentComm_handshake':
 
+							console.log('Comm.'+category+'.'+type+' - in handshake');
 							window.removeEventListener('message', winMsgListener, false);
 							port = data.port2;
 							port.onmessage = this.listener;
