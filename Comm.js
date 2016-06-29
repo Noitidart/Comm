@@ -770,7 +770,7 @@ var CommHelper = {
 			return CommHelper.cache.callInMainworker;
 		},
 		get callInContent1() {
-			if (gBlahComm1 && !CommHelper.cache.callInContent1) {
+			if (typeof(gBlahComm1) != 'undefined' && !CommHelper.cache.callInContent1) {
 				CommHelper.cache.callInContent1 = Comm.callInX.bind(null, gBlahComm1, null);
 			}
 			return CommHelper.cache.callInContent1;
@@ -796,7 +796,7 @@ var CommHelper = {
 			return CommHelper.cache.callInBootstrap;
 		},
 		get callInChildworker1() {
-			if (gBlahComm1 && !CommHelper.cache.callInChildworker1) {
+			if (typeof(gBlahComm1) != 'undefined' && !CommHelper.cache.callInChildworker1) {
 				CommHelper.cache.callInChildworker1 = Comm.callInX.bind(null, gBlahComm1, null);
 			}
 			return CommHelper.cache.callInChildworker1;
