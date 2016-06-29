@@ -690,7 +690,7 @@ var Comm = {
 			}
 		}
 	},
-	callInX: (aCommTo, aCallInMethod, aMethod, aArg, aCallback, aMessageManager) {
+	callInX: function(aCommTo, aCallInMethod, aMethod, aArg, aCallback, aMessageManager) {
 		// MUST not be used directly, MUSt have aCommTo and aCallInMethod bounded
 		var messagerMethod;
 		if (aCommTo.copyMessage) {
