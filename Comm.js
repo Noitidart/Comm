@@ -238,6 +238,8 @@ var Comm = {
 				Services.mm.broadcastAsyncMessage(aChannelId, {
 					method: 'UNINIT_FRAMESCRIPT'
 				});
+
+				Services.mm.removeMessageListener(aChannelId, this.listener);
 			};
 
 			Services.mm.addMessageListener(aChannelId, this.listener);
@@ -553,6 +555,7 @@ var Comm = {
 
 			this.unregister = function() {
 				Comm.unregister_generic(category, type, this);
+				gCommContentFrameMessageManager.removeMessageListener(aChannelId, this.listener);
 			};
 
 			gCommContentFrameMessageManager.addMessageListener(aChannelId, this.listener);
