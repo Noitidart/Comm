@@ -355,7 +355,7 @@ var Comm = {
 			if (!aPort1) {
 				var portWorkerBlob = new Blob(['var msgchan = new MessageChannel(); self.postMessage({ port1: msgchan.port1,port2: msgchan.port2 }, [msgchan.port1, msgchan.port2]);'], { type:'plain/text' });
 				var portWorkerBlobURL = URL.createObjectURL(portWorkerBlob);
-				var portWorker = new ChromeWorker();
+				var portWorker = new Worker(portWorkerBlobURL);
 				portWorker.onmessage = function(e) {
 					aPort1 = e.data.port1;
 					aPort2 = e.data.port2;
