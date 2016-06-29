@@ -764,7 +764,7 @@ var CommHelper = {
 	cache: {},
 	bootstrap: {
 		get callInMainworker() {
-			if (gWkComm && !CommHelper.cache.callInMainworker) {
+			if (typeof(gWkComm) != 'undefined' && !CommHelper.cache.callInMainworker) {
 				CommHelper.cache.callInMainworker = Comm.callInX.bind(null, gWkComm, null);
 			}
 			return CommHelper.cache.callInMainworker;
@@ -776,13 +776,13 @@ var CommHelper = {
 			return CommHelper.cache.callInContent1;
 		},
 		get callInContentinframescript() {
-			if (gFsComm && !CommHelper.cache.callInContentinframescript) {
+			if (typeof(gFsComm) != 'undefined' && !CommHelper.cache.callInContentinframescript) {
 				CommHelper.cache.callInContentinframescript = Comm.callInX.bind(null, gFsComm, 'callInContent');
 			}
 			return CommHelper.cache.callInContentinframescript;
 		},
 		get callInFramescript() {
-			if (gFsComm && !CommHelper.cache.callInFramescript) {
+			if (typeof(gFsComm) != 'undefined' && !CommHelper.cache.callInFramescript) {
 				CommHelper.cache.callInFramescript = Comm.callInX.bind(null, gFsComm, null);
 			}
 			return CommHelper.cache.callInFramescript;
@@ -790,7 +790,7 @@ var CommHelper = {
 	},
 	mainworker: {
 		get callInBootstrap() {
-			if (gBsComm && !CommHelper.cache.callInBootstrap) {
+			if (typeof(gBsComm) != 'undefined' && !CommHelper.cache.callInBootstrap) {
 				CommHelper.cache.callInBootstrap = Comm.callInX.bind(null, gBsComm, null);
 			}
 			return CommHelper.cache.callInBootstrap;
@@ -804,13 +804,13 @@ var CommHelper = {
 	},
 	childworker: {
 		get callInMainworker() {
-			if (gWkComm && !CommHelper.cache.callInMainworker) {
+			if (typeof(gWkComm) != 'undefined' && !CommHelper.cache.callInMainworker) {
 				CommHelper.cache.callInMainworker = Comm.callInX.bind(null, gWkComm, null);
 			}
 			return CommHelper.cache.callInMainworker;
 		},
 		get callInBootstrap() {
-			if (gWkComm && !CommHelper.cache.callInBootstrap) {
+			if (typeof(gWkComm) != 'undefined' && !CommHelper.cache.callInBootstrap) {
 				CommHelper.cache.callInBootstrap = Comm.callInX.bind(null, gWkComm, 'callInBootstrap');
 			}
 			return CommHelper.cache.callInBootstrap;
@@ -818,13 +818,13 @@ var CommHelper = {
 	},
 	content: {
 		get callInMainworker() {
-			if (gBsComm && !CommHelper.cache.callInMainworker) {
+			if (typeof(gBsComm) != 'undefined' && !CommHelper.cache.callInMainworker) {
 				CommHelper.cache.callInMainworker = Comm.callInX.bind(null, gBsComm, 'callInMainworker');
 			}
 			return CommHelper.cache.callInMainworker;
 		},
 		get callInBootstrap() {
-			if (gBsComm && !CommHelper.cache.callInBootstrap) {
+			if (typeof(gBsComm) != 'undefined' && !CommHelper.cache.callInBootstrap) {
 				CommHelper.cache.callInBootstrap = Comm.callInX.bind(null, gBsComm, null);
 			}
 			return CommHelper.cache.callInBootstrap;
@@ -832,19 +832,19 @@ var CommHelper = {
 	},
 	framescript: {
 		get callInBootstrap() {
-			if (gBsComm && !CommHelper.cache.callInBootstrap) {
+			if (typeof(gBsComm) != 'undefined' && !CommHelper.cache.callInBootstrap) {
 				CommHelper.cache.callInBootstrap = Comm.callInX.bind(null, gBsComm, null);
 			}
 			return CommHelper.cache.callInBootstrap;
 		},
 		get callInContent() {
-			if (gWinComm && !CommHelper.cache.callInContent) {
+			if (typeof(gWinComm) != 'undefined' && !CommHelper.cache.callInContent) {
 				CommHelper.cache.callInContent = Comm.callInX.bind(null, gWinComm, null);
 			}
 			return CommHelper.cache.callInContent;
 		},
 		get callInMainworker() {
-			if (gBsComm && !CommHelper.cache.callInMainworker) {
+			if (typeof(gBsComm) != 'undefined' && !CommHelper.cache.callInMainworker) {
 				CommHelper.cache.callInMainworker = Comm.callInX.bind(null, gBsComm, 'callInMainworker');
 			}
 			return CommHelper.cache.callInMainworker;
@@ -852,19 +852,19 @@ var CommHelper = {
 	},
 	contentinframescript: {
 		get callInFramescript() {
-			if (gFsComm && !CommHelper.cache.callInFramescript) {
+			if (typeof(gFsComm) != 'undefined' && !CommHelper.cache.callInFramescript) {
 				CommHelper.cache.callInFramescript = Comm.callInX.bind(null, gFsComm, null);
 			}
 			return CommHelper.cache.callInFramescript;
 		},
 		get callInMainworker() {
-			if (gFsComm && !CommHelper.cache.callInMainworker) {
+			if (typeof(gFsComm) != 'undefined' && !CommHelper.cache.callInMainworker) {
 				CommHelper.cache.callInMainworker = Comm.callInX.bind(null, gFsComm, 'callInMainworker');
 			}
 			return CommHelper.cache.callInMainworker;
 		},
 		get callInBootstrap() {
-			if (gFsComm && !CommHelper.cache.callInBootstrap) {
+			if (typeof(gFsComm) != 'undefined' && !CommHelper.cache.callInBootstrap) {
 				CommHelper.cache.callInBootstrap = Comm.callInX.bind(null, gFsComm, 'callInBootstrap');
 			}
 			return CommHelper.cache.callInBootstrap;
