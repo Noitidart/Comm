@@ -236,7 +236,7 @@ var Comm = {
 
 				// kill framescripts
 				Services.mm.broadcastAsyncMessage(aChannelId, {
-					method: 'UNINIT_FRAMESCRIPT'
+					method: 'uninit'
 				});
 
 				Services.mm.removeMessageListener(aChannelId, this.listener);
