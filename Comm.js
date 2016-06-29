@@ -560,7 +560,7 @@ var Comm = {
 
 			gCommContentFrameMessageManager.addMessageListener(aChannelId, this.listener);
 		},
-		content: function() {
+		content: function(onHandshakeComplete) {
 			var type = 'content';
 			var category = 'client';
 			var scope = gCommScope;
