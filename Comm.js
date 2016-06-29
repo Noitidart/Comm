@@ -351,7 +351,7 @@ var Comm = {
 					topic: 'contentComm_handshake',
 					port2: aPort2
 				}, '*', [aPort2]);
-			};
+			}.bind(this);
 
 			if (!aPort1) {
 				console.log('Comm.'+category+'.'+type+' - creating worker');
