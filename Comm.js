@@ -674,7 +674,7 @@ var Comm = {
 							window.removeEventListener('message', winMsgListener, false);
 							port = data.port2;
 							port.onmessage = this.listener;
-							this[messager_method]('Comm.'+category+'.'+type+' - contentComm_handshake_finalized');
+							this[messager_method]('contentComm_handshake_finalized');
 							handshakeComplete = true;
 							if (onHandshakeComplete) {
 								onHandshakeComplete(true);
