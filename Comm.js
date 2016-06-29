@@ -513,7 +513,7 @@ var Comm = {
 					arg: aArg,
 					cbid
 				});
-			};
+			}.bind(this);
 
 			this.listener = {
 				receiveMessage: function(e) {
