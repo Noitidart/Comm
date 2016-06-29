@@ -78,7 +78,7 @@ var Comm = {
 						cbid
 					}, aTransfers);
 				}
-			};
+			}.bind(this);
 
 			this.listener = function(e) {
 				var payload = e.data;
@@ -298,7 +298,7 @@ var Comm = {
 					arg: aArg,
 					cbid
 				}, aTransfers);
-			};
+			}.bind(this);
 
 			this.listener = function(e) {
 				var payload = e.data;
@@ -433,7 +433,7 @@ var Comm = {
 					arg: aArg,
 					cbid
 				}, aTransfers);
-			};
+			}.bind(this);
 
 			this.listener = function(e) {
 				var payload = e.data;
@@ -624,7 +624,7 @@ var Comm = {
 					arg: aArg,
 					cbid
 				}, aTransfers);
-			};
+			}.bind(this);
 
 			this.listener = function(e) {
 				var payload = e.data;
