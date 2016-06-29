@@ -345,6 +345,7 @@ var Comm = {
 			};
 
 			var postPortsGot = function() {
+				console.log('Comm.'+category+'.'+type+' - attaching listener and posting message, this.listener:', this.listener);
 				aPort1.onmessage = this.listener;
 				aContentWindow.postMessage({
 					topic: 'contentComm_handshake',
@@ -353,6 +354,7 @@ var Comm = {
 			};
 
 			if (!aPort1) {
+				console.log('Comm.'+category+'.'+type+' - creating worker');
 				var portWorkerBlob = new Blob(['var msgchan = new MessageChannel(); self.postMessage({ port1: msgchan.port1,port2: msgchan.port2 }, [msgchan.port1, msgchan.port2]);'], { type:'plain/text' });
 				var portWorkerBlobURL = URL.createObjectURL(portWorkerBlob);
 				var portWorker = new Worker(portWorkerBlobURL);
@@ -712,7 +714,7 @@ var Comm = {
 		if (aMethod.constructor.name == 'Object') {
 			var aReportProgress = aArg;
 			var aCommFrom = aCallback;
-			var {m:aMethod, a:aArg} = aMethod;
+			{m:aMethod, a:aArg} = aMethod;
 			if (!aCallInMethod) {
 				if (aReportProgress) { // if it has aReportProgress then the scope has a callback waiting for reply
 					var deferred = new Deferred();
