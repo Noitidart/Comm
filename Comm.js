@@ -830,7 +830,7 @@ var CommHelper = {
 	framescript: {
 		get callInBootstrap() {
 			if (!CommHelper.cache.callInBootstrap) {
-				console.error('from Comm.js, gBsComm:', gBsComm, 'rawr:', rawr);
+				console.error('from Comm.js, gBsComm:', gBsComm);
 				CommHelper.cache.callInBootstrap = Comm.callInX.bind(null, gBsComm, null);
 			}
 			return CommHelper.cache.callInBootstrap;
