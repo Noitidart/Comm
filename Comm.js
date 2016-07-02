@@ -17,14 +17,17 @@ var Comm = {
 				break;
 			}
 		}
+		self.unreged = true;
 	},
 	server: {
 		// these should be executed OUT of the scope. like `new Comm.server.worker()` should be executed in bootstrap or another worker
-		worker: function(aWorkerPath, onBeforeInit, onAfterInit, aWebWorker) {
+		worker: function(aWorkerPath, onBeforeInit, onAfterInit, onBeforeTerminate, aWebWorker) {
+			// onBeforeTerminate can return promise, once promise is resolved, in which it will hold off to terminate till that promise is resolved
 			var type = 'worker';
 			var category = 'server';
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
+			this.unreged = false;
 			var messager_method = 'putMessage';
 
 			var worker;
@@ -119,7 +122,20 @@ var Comm = {
 			}.bind(this);
 
 			this.unregister = function() {
+				if (this.unreged) { return }
 				Comm.unregister_generic(category, type, this);
+				if (worker) {
+					if (onBeforeTerminate) {
+						var rez_preterm = onBeforeTerminate();
+						if (rez_preterm && rez_scope.constructor.name == 'Promise') {
+							rez_preterm.then( ()=>{worker.terminate()}, ()=>{worker.terminate()} ).catch( ()=>{worker.terminate()} )
+						} else {
+							worker.terminate();
+						}
+					} else {
+						worker.terminate();
+					}
+				}
 			};
 
 			this.createWorker = function(onAfterCreate) {
@@ -160,6 +176,7 @@ var Comm = {
 			var category = 'server';
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
+			this.unreged = false;
 			var messager_method = 'copyMessage';
 
 			this.nextcbid = 1;
@@ -232,6 +249,7 @@ var Comm = {
 			};
 
 			this.unregister = function() {
+				if (this.unreged) { return }
 				Comm.unregister_generic(category, type, this);
 
 				// kill framescripts
@@ -249,6 +267,7 @@ var Comm = {
 			var category = 'server';
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
+			this.unreged = false;
 			var messager_method = 'putMessage';
 
 			var handshakeComplete = false; // indicates this[messager_method] will now work i think. it might work even before though as the messages might be saved till a listener is setup? i dont know i should ask
@@ -341,6 +360,7 @@ var Comm = {
 			}.bind(this);
 
 			this.unregister = function() {
+				if (this.unreged) { return }
 				Comm.unregister_generic(category, type, this);
 			};
 
@@ -388,6 +408,7 @@ var Comm = {
 			var category = 'client';
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
+			this.unreged = false;
 			var messager_method = 'putMessage';
 
 			var firstMethodCalled = false;
@@ -480,6 +501,7 @@ var Comm = {
 			}.bind(this);
 
 			this.unregister = function() {
+				if (this.unreged) { return }
 				Comm.unregister_generic(category, type, this);
 			};
 
@@ -490,6 +512,7 @@ var Comm = {
 			var category = 'client';
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
+			this.unreged = false;
 			var messager_method = 'copyMessage';
 
 			this.nextcbid = 1;
@@ -556,6 +579,7 @@ var Comm = {
 			};
 
 			this.unregister = function() {
+				if (this.unreged) { return }
 				Comm.unregister_generic(category, type, this);
 				gCommContentFrameMessageManager.removeMessageListener(aChannelId, this.listener);
 			};
@@ -567,6 +591,7 @@ var Comm = {
 			var category = 'client';
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
+			this.unreged = false;
 			var messager_method = 'putMessage';
 
 			var handshakeComplete = false; // indicates this[messager_method] will now work
@@ -661,6 +686,7 @@ var Comm = {
 			}.bind(this);
 
 			this.unregister = function() {
+				if (this.unreged) { return }
 				Comm.unregister_generic(category, type, this);
 			};
 
