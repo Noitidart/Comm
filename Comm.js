@@ -724,7 +724,7 @@ var Comm = {
 	},
 	callInX: function(aCommTo, aCallInMethod, aMethod, aArg, aCallback, aMessageManager) {
 		// MUST not be used directly, MUSt have aCommTo and aCallInMethod bounded
-		aCommTo = gCommScope[aCommTo];
+		aCommTo = typeof(aCommTo) == 'string' ? gCommScope[aCommTo] : aCommTo;
 		var messagerMethod;
 		if (aCommTo.copyMessage) {
 			if (aMessageManager) {
