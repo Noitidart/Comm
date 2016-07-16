@@ -123,18 +123,29 @@ var Comm = {
 
 			this.unregister = function() {
 				if (this.unreged) { return }
-				Comm.unregister_generic(category, type, this);
-				if (worker) {
-					if (onBeforeTerminate) {
-						var rez_preterm = onBeforeTerminate();
-						if (rez_preterm && rez_scope.constructor.name == 'Promise') {
-							rez_preterm.then( ()=>{worker.terminate()}, ()=>{worker.terminate()} ).catch( ()=>{worker.terminate()} )
-						} else {
-							worker.terminate();
-						}
-					} else {
+				var theself = this;
+
+				var unregIt = function(aCaught) {
+					if (aCaught) {
+						console.error('caught an error while running your onBeforeTerminate function, aCaught:', aCaught);
+					}
+					Comm.unregister_generic(category, type, theself);
+					console.log('Comm.js doing worker.terminate');
+					if (worker) {
 						worker.terminate();
 					}
+				};
+
+				if (worker && onBeforeTerminate) {
+					var rez_preterm = onBeforeTerminate();
+					if (rez_preterm && rez_preterm.constructor.name == 'Promise') {
+						console.log('rez_preterm was a promise');
+						rez_preterm.then(unregIt, unregIt).catch(aCaught=>unregIt.bind(null, aCaught));
+					} else {
+						unregIt();
+					}
+				} else {
+					unregIt();
 				}
 			};
 
