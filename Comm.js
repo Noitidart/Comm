@@ -832,3 +832,33 @@ var CommHelper = {
 		callInBootstrap: Comm.callInX.bind(null, 'gFsComm', 'callInBootstrap')
 	}
 };
+
+function Deferred() {
+	this.resolve = null;
+	this.reject = null;
+	this.promise = new Promise(function(resolve, reject) {
+		this.resolve = resolve;
+		this.reject = reject;
+	}.bind(this));
+	Object.freeze(this);
+}
+function genericReject(aPromiseName, aPromiseToReject, aReason) {
+	var rejObj = {
+		name: aPromiseName,
+		aReason: aReason
+	};
+	console.error('Rejected - ' + aPromiseName + ' - ', rejObj);
+	if (aPromiseToReject) {
+		aPromiseToReject.reject(rejObj);
+	}
+}
+function genericCatch(aPromiseName, aPromiseToReject, aCaught) {
+	var rejObj = {
+		name: aPromiseName,
+		aCaught: aCaught
+	};
+	console.error('Caught - ' + aPromiseName + ' - ', rejObj);
+	if (aPromiseToReject) {
+		aPromiseToReject.reject(rejObj);
+	}
+}
