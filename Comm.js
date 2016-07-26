@@ -6,7 +6,6 @@ if (typeof(gCommScope) == 'undefined') { // optional global, devuser can specify
 	var gCommScope = this;
 }
 
-var gCommContentFrameMessageManager = this;
 var Comm = {
 	unregister_generic: function(category, type, self) {
 		var instances = Comm[category].instances[type];
@@ -546,7 +545,7 @@ var Comm = {
 					}
 				}
 
-				gCommContentFrameMessageManager.sendAsyncMessage(aChannelId, {
+				sendAsyncMessage(aChannelId, {
 					method: aMethod,
 					arg: aArg,
 					cbid
@@ -592,10 +591,10 @@ var Comm = {
 			this.unregister = function() {
 				if (this.unreged) { return }
 				Comm.unregister_generic(category, type, this);
-				gCommContentFrameMessageManager.removeMessageListener(aChannelId, this.listener);
+				removeMessageListener(aChannelId, this.listener);
 			};
 
-			gCommContentFrameMessageManager.addMessageListener(aChannelId, this.listener);
+			addMessageListener(aChannelId, this.listener);
 		},
 		content: function(onHandshakeComplete) {
 			var type = 'content';
