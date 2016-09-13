@@ -272,7 +272,7 @@ var Comm = {
 
 			Services.mm.addMessageListener(aChannelId, this.listener);
 		},
-		content: function(aContentWindow, onHandshakeComplete, aPort1, aPort2) {
+		content: function(aContentWindow, onHandshakeComplete, aPort1, aPort2, aPortGenerationWithWorker) {
 			var type = 'content';
 			var category = 'server';
 			var scope = gCommScope;
@@ -384,18 +384,26 @@ var Comm = {
 			}.bind(this);
 
 			if (!aPort1) {
-				console.log('Comm.'+category+'.'+type+' - creating worker');
-				var portWorkerBlob = new Blob(['var msgchan = new MessageChannel(); self.postMessage({ port1: msgchan.port1,port2: msgchan.port2 }, [msgchan.port1, msgchan.port2]);'], { type:'plain/text' });
-				var portWorkerBlobURL = URL.createObjectURL(portWorkerBlob);
-				var portWorker = new Worker(portWorkerBlobURL);
-				portWorker.onmessage = function(e) {
-					aPort1 = e.data.port1;
-					aPort2 = e.data.port2;
-					postPortsGot();
+				if (aPortGenerationWithWorker) {
+					console.log('Comm.'+category+'.'+type+' - generating ports by creating worker');
+					var portWorkerBlob = new Blob(['var msgchan = new MessageChannel(); self.postMessage({ port1: msgchan.port1,port2: msgchan.port2 }, [msgchan.port1, msgchan.port2]);'], { type:'plain/text' });
+					var portWorkerBlobURL = URL.createObjectURL(portWorkerBlob);
+					var portWorker = new Worker(portWorkerBlobURL);
+					portWorker.onmessage = function(e) {
+						aPort1 = e.data.port1;
+						aPort2 = e.data.port2;
+						postPortsGot();
 
-					portWorker.terminate();
-					URL.revokeObjectURL(portWorkerBlobURL);
-				};
+						portWorker.terminate();
+						URL.revokeObjectURL(portWorkerBlobURL);
+					};
+				} else {
+					console.log('Comm.'+category+'.'+type+' - generating ports by tapping `content` scope');
+					var msgchan = new content.MessageChannel();
+					aPort1 = msgchan.port1;
+					aPort2 = msgchan.port2;
+					postPortsGot();
+				}
 			} else {
 				postPortsGot();
 			}
