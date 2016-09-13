@@ -399,7 +399,7 @@ var Comm = {
 					};
 				} else {
 					console.log('Comm.'+category+'.'+type+' - generating ports by tapping `content` scope');
-					var msgchan = new content.MessageChannel();
+					var msgchan = new aContentWindow.MessageChannel();
 					aPort1 = msgchan.port1;
 					aPort2 = msgchan.port2;
 					postPortsGot();
