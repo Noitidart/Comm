@@ -399,10 +399,19 @@ var Comm = {
 					};
 				} else {
 					console.log('Comm.'+category+'.'+type+' - generating ports by tapping `content` scope');
-					var msgchan = new aContentWindow.MessageChannel();
-					aPort1 = msgchan.port1;
-					aPort2 = msgchan.port2;
-					postPortsGot();
+					var hidwin = Services.appShell.hiddenDOMWindow;
+					var onhidwinload = function() {
+						hidwin.removeEventListener('load', onhidwinload, false);
+						var msgchan = new hidwin.MessageChannel();
+						aPort1 = msgchan.port1;
+						aPort2 = msgchan.port2;
+						postPortsGot();
+					};
+					if (hidwin.document.readyState == 'complete') {
+						onhidwinload();
+					} else {
+						hidwin.addEventListener('load', onhidwinload, false);
+					}
 				}
 			} else {
 				postPortsGot();
