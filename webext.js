@@ -721,7 +721,7 @@ var Comm = {
 	client: {
 		webextports: function(aPortType) {
 			// aPortType - string - optional; default:"general" - anything you want. for instance, "tab", "popup", whatever. "general" though is reserved". this is me just planning for future, for like in case i want to broad cast to all ports of a certain type
-			// aPortName - MUST be unique
+			// TODO: probably handle .onDisconnect of the port
 			/*
 				used as setup from content scripts/popup.js etc
 				var gBgComm = new Comm.client.webexttabs();
