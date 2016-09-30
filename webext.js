@@ -19,6 +19,114 @@ var Comm = {
 		self.unreged = true;
 	},
 	server: {
+		webextports: function() {
+			/*
+			used as setup from background.js
+			so in background.js do
+			var gPortsComm = new Comm.server.webextport();
+			*/
+
+			var type = 'webextports';
+			var category = 'server';
+			var scope = gCommScope;
+			Comm[category].instances[type].push(this);
+			this.unreged = false;
+			var messager_method = 'copyMessage';
+			var ports = {};
+
+			this.nextcbid = 1;
+			this.callbackReceptacle = {};
+			this.reportProgress = function(aProgressArg) {
+				aProgressArg.__PROGRESS = 1;
+				this.THIS[messager_method](this.portname, this.cbid, aProgressArg);
+			};
+
+			// port messager
+			this[messager_method] = function(aPortName, aMethod, aArg, aCallback) {
+				// console.log('Comm.'+category+'.'+type+' - in messager_method:', aMessageManager, aMethod, aArg, aCallback);
+
+				var cbid = null;
+				if (typeof(aMethod) == 'number') {
+					// this is a response to a callack waiting in framescript
+					cbid = aMethod;
+					aMethod = null;
+				} else {
+					if (aCallback) {
+						cbid = this.nextcbid++;
+						this.callbackReceptacle[cbid] = aCallback;
+					}
+				}
+
+				ports[aPortName].postMessage({
+					method: aMethod,
+					arg: aArg,
+					cbid: cbid
+				});
+			};
+
+			// port listener
+			this.listener = function handleMessage(payload) {
+				console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload);
+
+				var portname = payload.portname;
+				delete payload.portname;
+
+				if (payload.method) {
+					if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
+					var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid, portname:portname}) : undefined, this, portname);
+					// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
+					if (payload.cbid) {
+						if (rez_scope && rez_scope.constructor.name == 'Promise') {
+							rez_scope.then(
+								function(aVal) {
+									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
+									this[messager_method](portname, payload.cbid, aVal);
+								}.bind(this),
+								genericReject.bind(null, 'rez_scope', 0)
+							).catch(genericCatch.bind(null, 'rez_scope', 0));
+						} else {
+							this[messager_method](portname, payload.cbid, rez_scope);
+						}
+					}
+				} else if (!payload.method && payload.cbid) {
+					// its a cbid
+					this.callbackReceptacle[payload.cbid](payload.arg, this, portname);
+					if (payload.arg && !payload.arg.__PROGRESS) {
+						delete this.callbackReceptacle[payload.cbid];
+					}
+				}
+				else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
+			}.bind(this);
+
+			// runtime connector
+			this.connector = function(aPort) {
+				console.log('Comm.'+category+'.'+type+' - incoming connect request, aPort:', aPort);
+				ports[aPort.name] = aPort;
+				aPort.onDisconnect = this.disconnector.bind(null, aPort);
+				aPort.onMessage.addListener(this.listener);
+			}.bind(this);
+
+			// port disconnector
+			this.disconnector = function(aPortName) {
+				console.log('Comm.'+category+'.'+type+' - incoming disconnect request, aPortName:', aPortName);
+				aPort.onMessage.removeListener(this.listener); // probably not needed, as it was disconnected
+				delete ports[aPortName];
+			}.bind(this);
+
+			// server unregister'er
+			this.unregister = function() {
+				if (this.unreged) { return }
+				Comm.unregister_generic(category, type, this);
+
+				for (var a_portname in ports) {
+					ports[a_portname].disconnect();
+				}
+
+				chrome.runtime.onConnect.removeListener(this.connector);
+			};
+
+			chrome.runtime.onConnect.addListener(this.connector);
+		},
 		webexttabs: function(aChannelId) {
 			/*
 			used as setup from background.js
@@ -599,7 +707,7 @@ var Comm = {
 				postPortsGot();
 			}
 		},
-		instances: {worker:[], framescript:[], content:[], webexttabs:[], webextexe:[]},
+		instances: {worker:[], framescript:[], content:[], webexttabs:[], webextexe:[], webextports:[]},
 		unregAll: function(aType) {
 			var category = 'server';
 			var type_instances_clone = Comm[category].instances[aType].slice(); // as the .unregister will remove it from the original array
@@ -611,6 +719,93 @@ var Comm = {
 		}
 	},
 	client: {
+		webextports: function(aPortType) {
+			// aPortType - string - optional; default:"general" - anything you want. for instance, "tab", "popup", whatever. "general" though is reserved". this is me just planning for future, for like in case i want to broad cast to all ports of a certain type
+			// aPortName - MUST be unique
+			/*
+				used as setup from content scripts/popup.js etc
+				var gBgComm = new Comm.client.webexttabs();
+			*/
+			this.porttype = aPortType || 'general';
+			this.portname = this.porttype + '-' + Math.random();
+
+			var type = 'webexttabs';
+			var category = 'client';
+			var scope = gCommScope;
+			Comm[category].instances[type].push(this);
+			this.unreged = false;
+			var messager_method = 'copyMessage';
+
+			this.nextcbid = 1;
+			this.callbackReceptacle = {};
+			this.reportProgress = function(aProgressArg) {
+				aProgressArg.__PROGRESS = 1;
+				this.THIS[messager_method](this.cbid, aProgressArg);
+			};
+
+			this[messager_method] = function(aMethod, aArg, aCallback) {
+				var cbid = null;
+				if (typeof(aMethod) == 'number') {
+					// this is a response to a callack waiting in framescript
+					cbid = aMethod;
+					aMethod = null;
+				} else {
+					if (aCallback) {
+						cbid = this.nextcbid++;
+						this.callbackReceptacle[cbid] = aCallback;
+					}
+				}
+
+				port.postMessage({
+					method: aMethod,
+					arg: aArg,
+					cbid: cbid,
+					portname: this.portname
+				});
+			}.bind(this);
+
+			this.listener = function handleMessage(payload) {
+				console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); // , 'messageManager:', messageManager, 'browser:', browser, 'e:', e);
+
+				if (payload.method) {
+					if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
+					var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid}) : undefined, this);
+					// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
+					if (payload.cbid) {
+						if (rez_scope && rez_scope.constructor.name == 'Promise') {
+							rez_scope.then(
+								function(aVal) {
+									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
+									this[messager_method](payload.cbid, aVal);
+								}.bind(this),
+								genericReject.bind(null, 'rez_scope', 0)
+							).catch(genericCatch.bind(null, 'rez_scope', 0));
+						} else {
+							this[messager_method](payload.cbid, rez_scope);
+						}
+					}
+				} else if (!payload.method && payload.cbid) {
+					// its a cbid
+					this.callbackReceptacle[payload.cbid](payload.arg, this);
+					if (payload.arg && !payload.arg.__PROGRESS) {
+						delete this.callbackReceptacle[payload.cbid];
+					}
+				}
+				else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
+			}.bind(this);
+
+			this.unregister = function() {
+				if (this.unreged) { return }
+				Comm.unregister_generic(category, type, this);
+
+				port.onMessage.removeListener(this.listener); // i probably dont need this as I do `port.disconnect` on next line
+				port.disconnect();
+			};
+
+
+			var port = chrome.runtime.connect({name:this.portname});
+			port.onMessage.addListener(this.listener);
+		},
 		webexttabs: function(aChannelId) {
 			/*
 				used as setup from content scripts/popup.js etc
@@ -683,7 +878,7 @@ var Comm = {
 			this.unregister = function() {
 				if (this.unreged) { return }
 				Comm.unregister_generic(category, type, this);
-				removeMessageListener(aChannelId, this.listener);
+				chrome.runtime.onMessage.removeListener(this.listener);
 			};
 
 			chrome.runtime.onMessage.addListener(this.listener);
