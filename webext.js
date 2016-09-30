@@ -102,14 +102,15 @@ var Comm = {
 			this.connector = function(aPort) {
 				console.log('Comm.'+category+'.'+type+' - incoming connect request, aPort:', aPort);
 				ports[aPort.name] = aPort;
-				aPort.onDisconnect = this.disconnector.bind(null, aPort);
 				aPort.onMessage.addListener(this.listener);
+				aPort.onDisconnect.addListener(this.disconnector.bind(null, aPort.name));
 			}.bind(this);
 
 			// port disconnector
 			this.disconnector = function(aPortName) {
 				console.log('Comm.'+category+'.'+type+' - incoming disconnect request, aPortName:', aPortName);
-				aPort.onMessage.removeListener(this.listener); // probably not needed, as it was disconnected
+				var port = ports[aPortName];
+				port.onMessage.removeListener(this.listener); // probably not needed, as it was disconnected
 				delete ports[aPortName];
 			}.bind(this);
 
@@ -794,6 +795,15 @@ var Comm = {
 				else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
 			}.bind(this);
 
+			// port disconnector
+			this.disconnector = function(aPortName) {
+				// TODO: untested, i couldnt figure out how to get this to trigger. and i didnt do a `port.disconnect()` from background.js
+				console.log('Comm.'+category+'.'+type+' - incoming disconnect request, aPortName:', aPortName);
+				// aPort.onMessage.removeListener(this.listener); // probably not needed, as it was disconnected
+				// delete ports[aPortName];
+				this.unregister();
+			}.bind(this);
+
 			this.unregister = function() {
 				if (this.unreged) { return }
 				Comm.unregister_generic(category, type, this);
@@ -805,6 +815,7 @@ var Comm = {
 
 			var port = chrome.runtime.connect({name:this.portname});
 			port.onMessage.addListener(this.listener);
+			port.onDisconnect.addListener(this.disconnector);
 		},
 		webexttabs: function(aChannelId) {
 			/*
