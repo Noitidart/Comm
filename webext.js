@@ -19,28 +19,28 @@ var Comm = {
 		self.unreged = true;
 	},
 	server: {
-		webextcontent: function(aChannelId) {
+		webexttabs: function(aChannelId) {
 			/*
 			used as setup from background.js
 			so in background.js do
-			var gBgComm = new Comm.server.webextcontent();
+			var gBgComm = new Comm.server.webexttabs();
 			*/
 
-			var type = 'webextcontent';
+			var type = 'webexttabs';
 			var category = 'server';
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
 			this.unreged = false;
-			var messager_method = 'sendMessage';
+			var messager_method = 'copyMessage';
 
 			this.nextcbid = 1;
 			this.callbackReceptacle = {};
 			this.reportProgress = function(aProgressArg) {
 				aProgressArg.__PROGRESS = 1;
-				this.THIS[messager_method](this.cbid, aProgressArg);
+				this.THIS[messager_method](this.tabid, this.cbid, aProgressArg);
 			};
 
-			this[messager_method] = function(aMethod, aArg, aCallback) {
+			this[messager_method] = function(aTabId, aMethod, aArg, aCallback) {
 				// console.log('Comm.'+category+'.'+type+' - in messager_method:', aMessageManager, aMethod, aArg, aCallback);
 
 				var cbid = null;
@@ -55,36 +55,38 @@ var Comm = {
 					}
 				}
 
-				chrome.runtime.sendMessage({
+				chrome.tabs.sendMessage(aTabId, {
 					method: aMethod,
 					arg: aArg,
-					cbid
+					cbid: cbid
 				});
 			};
 
-			this.listener = function handleMessage(payload) {
+			this.listener = function handleMessage(payload, sender) {
 				console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); // , 'messageManager:', messageManager, 'browser:', browser, 'e:', e);
+
+				var tabid = sender.tab.id;
 
 				if (payload.method) {
 					if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
-					var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid}) : undefined, this);
+					var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid, tabid:tabid}) : undefined, this, tabid);
 					// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
 					if (payload.cbid) {
 						if (rez_scope && rez_scope.constructor.name == 'Promise') {
 							rez_scope.then(
 								function(aVal) {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
-									this[messager_method](payload.cbid, aVal);
+									this[messager_method](tabid, payload.cbid, aVal);
 								}.bind(this),
 								genericReject.bind(null, 'rez_scope', 0)
 							).catch(genericCatch.bind(null, 'rez_scope', 0));
 						} else {
-							this[messager_method](payload.cbid, rez_scope);
+							this[messager_method](tabid, payload.cbid, rez_scope);
 						}
 					}
 				} else if (!payload.method && payload.cbid) {
 					// its a cbid
-					this.callbackReceptacle[payload.cbid](payload.arg, this);
+					this.callbackReceptacle[payload.cbid](payload.arg, this, tabid);
 					if (payload.arg && !payload.arg.__PROGRESS) {
 						delete this.callbackReceptacle[payload.cbid];
 					}
@@ -101,7 +103,7 @@ var Comm = {
 
 			chrome.runtime.onMessage.addListener(this.listener);
 		},
-		webextexe: function(aAppName, onAfterConnect, onFailConnect) {
+		webextexe: function(aAppName, onConnect, onFailConnect) {
 			/*
 			used as setup from background.js
 			so in background.js do
@@ -113,7 +115,7 @@ var Comm = {
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
 			this.unreged = false;
-			var messager_method = 'sendMessage';
+			var messager_method = 'copyMessage';
 
 			this.nextcbid = 1;
 			this.callbackReceptacle = {};
@@ -140,7 +142,7 @@ var Comm = {
 				port.postMessage({
 					method: aMethod,
 					arg: aArg,
-					cbid
+					cbid: cbid
 				});
 			};
 
@@ -189,11 +191,10 @@ var Comm = {
 			var doConnect = function() {
 				try {
 					port = browser.runtime.connectNative(aAppName);
+					if (onConnect) onConnect();
 				} catch (ex) {
 					this.unregister();
-					if (onFailConnect) {
-						onFailConnect();
-					}
+					if (onFailConnect) onFailConnect(ex);
 				}
 			};
 
@@ -258,7 +259,7 @@ var Comm = {
 					worker.postMessage({
 						method: aMethod,
 						arg: aArg,
-						cbid
+						cbid: cbid
 					}, aTransfers);
 				}
 			}.bind(this);
@@ -430,7 +431,7 @@ var Comm = {
 						}
 					} else if (!payload.method && payload.cbid) {
 						// its a cbid
-						this.callbackReceptacle[payload.cbid](payload.arg, messageManager, browser, this);
+						this.callbackReceptacle[payload.cbid](payload.arg, this, messageManager, browser); // 093016 i think this is a fix i needed to make, but i never encountered an issue with it
 						if (payload.arg && !payload.arg.__PROGRESS) {
 							delete this.callbackReceptacle[payload.cbid];
 						}
@@ -506,7 +507,7 @@ var Comm = {
 				aPort1.postMessage({
 					method: aMethod,
 					arg: aArg,
-					cbid
+					cbid: cbid
 				}, aTransfers);
 			}.bind(this);
 
@@ -598,7 +599,7 @@ var Comm = {
 				postPortsGot();
 			}
 		},
-		instances: {worker:[], framescript:[], content:[]},
+		instances: {worker:[], framescript:[], content:[], webexttabs:[], webextexe:[]},
 		unregAll: function(aType) {
 			var category = 'server';
 			var type_instances_clone = Comm[category].instances[aType].slice(); // as the .unregister will remove it from the original array
@@ -610,12 +611,12 @@ var Comm = {
 		}
 	},
 	client: {
-		webextcontent: function(aChannelId) {
+		webexttabs: function(aChannelId) {
 			/*
 				used as setup from content scripts/popup.js etc
-				var gWebComm = new Comm.client.webextcontent();
+				var gBgComm = new Comm.client.webexttabs();
 			*/
-			var type = 'webextcontent';
+			var type = 'webexttabs';
 			var category = 'client';
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
@@ -642,48 +643,42 @@ var Comm = {
 					}
 				}
 
-				sendAsyncMessage(aChannelId, {
+				chrome.runtime.sendMessage({
 					method: aMethod,
 					arg: aArg,
-					cbid
+					cbid: cbid
 				});
 			}.bind(this);
 
-			this.listener = {
-				receiveMessage: function(e) {
-					var messageManager = e.target.messageManager;
-					var browser = e.target;
-					var payload = e.data;
-					console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); //, 'e:', e);
-					// console.log('this in receiveMessage bootstrap:', this);
+			this.listener = function handleMessage(payload) {
+				console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); // , 'messageManager:', messageManager, 'browser:', browser, 'e:', e);
 
-					if (payload.method) {
-						if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
-						var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid}) : undefined, this);
-						// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
-						if (payload.cbid) {
-							if (rez_scope && rez_scope.constructor.name == 'Promise') {
-								rez_scope.then(
-									function(aVal) {
-										console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
-										this[messager_method](payload.cbid, aVal);
-									}.bind(this),
-									genericReject.bind(null, 'rez_scope', 0)
-								).catch(genericCatch.bind(null, 'rez_scope', 0));
-							} else {
-								this[messager_method](payload.cbid, rez_scope);
-							}
-						}
-					} else if (!payload.method && payload.cbid) {
-						// its a cbid
-						this.callbackReceptacle[payload.cbid](payload.arg, messageManager, browser, this);
-						if (payload.arg && !payload.arg.__PROGRESS) {
-							delete this.callbackReceptacle[payload.cbid];
+				if (payload.method) {
+					if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
+					var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid}) : undefined, this);
+					// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
+					if (payload.cbid) {
+						if (rez_scope && rez_scope.constructor.name == 'Promise') {
+							rez_scope.then(
+								function(aVal) {
+									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
+									this[messager_method](payload.cbid, aVal);
+								}.bind(this),
+								genericReject.bind(null, 'rez_scope', 0)
+							).catch(genericCatch.bind(null, 'rez_scope', 0));
+						} else {
+							this[messager_method](payload.cbid, rez_scope);
 						}
 					}
-					else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
-				}.bind(this)
-			};
+				} else if (!payload.method && payload.cbid) {
+					// its a cbid
+					this.callbackReceptacle[payload.cbid](payload.arg, this);
+					if (payload.arg && !payload.arg.__PROGRESS) {
+						delete this.callbackReceptacle[payload.cbid];
+					}
+				}
+				else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
+			}.bind(this);
 
 			this.unregister = function() {
 				if (this.unreged) { return }
@@ -691,7 +686,7 @@ var Comm = {
 				removeMessageListener(aChannelId, this.listener);
 			};
 
-			addMessageListener(aChannelId, this.listener);
+			chrome.runtime.onMessage.addListener(this.listener);
 		},
 		// these should be excuted in the respective scope, like `new Comm.client.worker()` in worker, framescript in framescript, content in content
 		worker: function() {
@@ -745,7 +740,7 @@ var Comm = {
 				self.postMessage({
 					method: aMethod,
 					arg: aArg,
-					cbid
+					cbid: cbid
 				}, aTransfers);
 			}.bind(this);
 
@@ -829,7 +824,7 @@ var Comm = {
 				sendAsyncMessage(aChannelId, {
 					method: aMethod,
 					arg: aArg,
-					cbid
+					cbid: cbid
 				});
 			}.bind(this);
 
@@ -940,7 +935,7 @@ var Comm = {
 				port.postMessage({
 					method: aMethod,
 					arg: aArg,
-					cbid
+					cbid: cbid
 				}, aTransfers);
 			}.bind(this);
 
@@ -1002,7 +997,7 @@ var Comm = {
 
 			window.addEventListener('message', winMsgListener, false);
 		},
-		instances: {worker:[], framescript:[], content:[]},
+		instances: {worker:[], framescript:[], content:[], webexttabs:[]},
 		unregAll: function(aType) {
 			var category = 'client';
 			var type_instances_clone = Comm[category].instances[aType].slice(); // as the .unregister will remove it from the original array
@@ -1122,7 +1117,7 @@ var CommHelper = {
 	},
 	// the below are not used, just brainstorming what exe needs
 	webextexe: {
-		callInBackground: function() {}
+		callInBackground: function() {},
 		callInThread: function() {}
 	},
 	webextexethread: {
