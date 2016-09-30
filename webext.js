@@ -1008,6 +1008,73 @@ var Comm = {
 			}
 		}
 	},
+	callInX2: function(aCommTo, aCallInMethod, aMessageManagerOrTabId, aMethod, aArg, aCallback) {
+		// second version of callInX, after i started working on webext part of Comm
+		// MUST not be used directly, MUSt have aCommTo and aCallInMethod bounded
+		aCommTo = typeof(aCommTo) == 'string' ? gCommScope[aCommTo] : aCommTo;
+		var messagerMethod;
+		if (aCommTo.copyMessage) {
+			if (aMessageManagerOrTabId) {
+				// server - so this is bootstrap obviously
+				messagerMethod = aCommTo.copyMessage.bind(aCommTo, aMessageManagerOrTabId);
+			} else {
+				// client
+				messagerMethod = aCommTo.copyMessage;
+			}
+		} else {
+			messagerMethod = aCommTo.putMessage;
+		}
+
+		if (aMethod.constructor.name == 'Object') {
+			var aReportProgress = aArg;
+			var aCommFrom = aCallback;
+			({m:aMethod, a:aArg} = aMethod);
+			if (!aCallInMethod) {
+				if (aReportProgress) { // if it has aReportProgress then the scope has a callback waiting for reply
+					var deferred = new Deferred();
+					messagerMethod(aMethod, aArg, function(rez) {
+						if (rez && rez.__PROGRESS) {
+							aReportProgress(rez);
+						} else {
+							deferred.resolve(rez);
+						}
+					});
+					return deferred.promise;
+				} else {
+					messagerMethod(aMethod, aArg);
+				}
+			} else {
+				if (aReportProgress) { // if it has aReportProgress then the scope has a callback waiting for reply
+					var deferred = new Deferred();
+					messagerMethod(aCallInMethod, {
+						m: aMethod,
+						a: aArg
+					}, function(rez) {
+						if (rez && rez.__PROGRESS) {
+							aReportProgress(rez);
+						} else {
+							deferred.resolve(rez);
+						}
+					});
+					return deferred.promise;
+				} else {
+					messagerMethod(aCallInMethod, {
+						m: aMethod,
+						a: aArg
+					});
+				}
+			}
+		} else {
+			if (!aCallInMethod) {
+				messagerMethod(aMethod, aArg, aCallback);
+			} else {
+				messagerMethod(aCallInMethod, {
+					m: aMethod,
+					a: aArg
+				}, aCallback);
+			}
+		}
+	},
 	callInX: function(aCommTo, aCallInMethod, aMethod, aArg, aCallback, aMessageManager) {
 		// MUST not be used directly, MUSt have aCommTo and aCallInMethod bounded
 		aCommTo = typeof(aCommTo) == 'string' ? gCommScope[aCommTo] : aCommTo;
