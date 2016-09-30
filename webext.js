@@ -1380,13 +1380,13 @@ var CommHelper = {
 		callInMainworker: Comm.callInX.bind(null, 'gFsComm', 'callInMainworker'),
 		callInBootstrap: Comm.callInX.bind(null, 'gFsComm', 'callInBootstrap')
 	},
-	webextcontent: {
-		callInExe: function() {},
-		callInContent: function(tabid) {}
+	webextbackground: {
+		callInExe: Comm.callInX2.bind(null, 'gExeComm', null, null),
+		callInAPort: Comm.callInX2.bind(null, 'gPortsComm', null)
 	},
-	webextcontent: {
-		callInExe: function() {},
-		callInBackground: function() {}
+	webextcontentscript: {
+		callInExe: Comm.callInX2.bind(null, 'gBgComm', 'callInExe', null),
+		callInBackground: Comm.callInX2.bind(null, 'gBgComm', null, null)
 	},
 	// the below are not used, just brainstorming what exe needs
 	webextexe: {
