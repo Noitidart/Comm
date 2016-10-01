@@ -253,7 +253,7 @@ var Comm = {
 					arg: aArg,
 					cbid: cbid
 				});
-			};
+			}.bind(this);
 
 			this.listener = function handleMessage(payload) {
 				console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); // , 'messageManager:', messageManager, 'browser:', browser, 'e:', e);
@@ -300,12 +300,15 @@ var Comm = {
 			var doConnect = function() {
 				try {
 					port = browser.runtime.connectNative(aAppName);
+
+					port.onMessage.addListener(this.listener);
+
 					if (onConnect) onConnect();
 				} catch (ex) {
 					this.unregister();
 					if (onFailConnect) onFailConnect(ex);
 				}
-			};
+			}.bind(this);
 
 			var port;
 			doConnect();
