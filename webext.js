@@ -303,7 +303,7 @@ var Comm = {
 
 					port.onMessage.addListener(this.listener);
 
-					if (onConnect) onConnect();
+					if (onConnect) setTimeout(onConnect, 0); // need the setTimeout, because if in `onConnect` user calls `callInExe` it will give undefined apparently as the `= new ` has not yet completed
 				} catch (ex) {
 					this.unregister();
 					if (onFailConnect) onFailConnect(ex);
