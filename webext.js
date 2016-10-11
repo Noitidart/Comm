@@ -276,7 +276,7 @@ var Comm = {
 				console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); // , 'messageManager:', messageManager, 'browser:', browser, 'e:', e);
 
 				if (payload.method) {
-					if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
+					if (!(payload.method in scope)) { console.error('Comm.'+category+'.'+type+' - method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
 					var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid}) : undefined, this);
 					// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
 					if (payload.cbid) {
@@ -313,9 +313,13 @@ var Comm = {
 			};
 
 			var onConnect = function(aPort) {
-				port = aPort;
-				// console.log('ok webext connection made, port:', port);
-				port.onMessage.addListener(this.listener);
+				if (aPort.name == 'bootstrap-comm') {
+					port = aPort;
+					// console.log('ok webext connection made, port:', port);
+					port.onMessage.addListener(this.listener);
+					browser.runtime.onConnect.removeListener(onConnect);
+				}
+				else { console.warn('name of aPort coming to Comm.server.webext IS NOT bootstrap-comm it is:', aPort.name)}
 			}.bind(this);
 
 			var port;
@@ -832,7 +836,7 @@ var Comm = {
 			port.onMessage.addListener(this.listener);
 			port.onDisconnect.addListener(this.disconnector);
 		},
-		webext: function(aChannelId) {
+		webext: function() {
 			/*
 				used as setup from background.js
 				var gBsComm = new Comm.client.webext();
@@ -907,7 +911,7 @@ var Comm = {
 				port.onMessage.removeListener(this.listener);
 			};
 
-			var port = browser.runtime.connect({ name:'webext' });
+			var port = browser.runtime.connect({ name:'bootstrap-comm' });
 			port.onMessage.addListener(this.listener);
 		},
 		// these should be excuted in the respective scope, like `new Comm.client.worker()` in worker, framescript in framescript, content in content
