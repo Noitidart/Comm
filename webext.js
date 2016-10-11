@@ -128,90 +128,6 @@ var Comm = {
 
 			chrome.runtime.onConnect.addListener(this.connector);
 		},
-		webexttabs: function(aChannelId) {
-			/*
-			used as setup from background.js
-			so in background.js do
-			var gBgComm = new Comm.server.webexttabs();
-			*/
-
-			var type = 'webexttabs';
-			var category = 'server';
-			var scope = gCommScope;
-			Comm[category].instances[type].push(this);
-			this.unreged = false;
-			var messager_method = 'copyMessage';
-
-			this.nextcbid = 1;
-			this.callbackReceptacle = {};
-			this.reportProgress = function(aProgressArg) {
-				aProgressArg.__PROGRESS = 1;
-				this.THIS[messager_method](this.tabid, this.cbid, aProgressArg);
-			};
-
-			this[messager_method] = function(aTabId, aMethod, aArg, aCallback) {
-				// console.log('Comm.'+category+'.'+type+' - in messager_method:', aMessageManager, aMethod, aArg, aCallback);
-
-				var cbid = null;
-				if (typeof(aMethod) == 'number') {
-					// this is a response to a callack waiting in framescript
-					cbid = aMethod;
-					aMethod = null;
-				} else {
-					if (aCallback) {
-						cbid = this.nextcbid++;
-						this.callbackReceptacle[cbid] = aCallback;
-					}
-				}
-
-				chrome.tabs.sendMessage(aTabId, {
-					method: aMethod,
-					arg: aArg,
-					cbid: cbid
-				});
-			};
-
-			this.listener = function handleMessage(payload, sender) {
-				console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); // , 'messageManager:', messageManager, 'browser:', browser, 'e:', e);
-
-				var tabid = sender.tab.id;
-
-				if (payload.method) {
-					if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
-					var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid, tabid:tabid}) : undefined, this, tabid);
-					// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
-					if (payload.cbid) {
-						if (rez_scope && rez_scope.constructor.name == 'Promise') {
-							rez_scope.then(
-								function(aVal) {
-									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
-									this[messager_method](tabid, payload.cbid, aVal);
-								}.bind(this),
-								genericReject.bind(null, 'rez_scope', 0)
-							).catch(genericCatch.bind(null, 'rez_scope', 0));
-						} else {
-							this[messager_method](tabid, payload.cbid, rez_scope);
-						}
-					}
-				} else if (!payload.method && payload.cbid) {
-					// its a cbid
-					this.callbackReceptacle[payload.cbid](payload.arg, this, tabid);
-					if (payload.arg && !payload.arg.__PROGRESS) {
-						delete this.callbackReceptacle[payload.cbid];
-					}
-				}
-				else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
-			}.bind(this);
-
-			this.unregister = function() {
-				if (this.unreged) { return }
-				Comm.unregister_generic(category, type, this);
-
-				chrome.runtime.onMessage.removeListener(this.listener);
-			};
-
-			chrome.runtime.onMessage.addListener(this.listener);
-		},
 		webextexe: function(aAppName, onConnect, onFailConnect) {
 			/*
 			used as setup from background.js
@@ -312,6 +228,102 @@ var Comm = {
 
 			var port;
 			doConnect();
+		},
+		webext: function(aWebextEngine) {
+			/*
+			used as setup from bootstrap.js
+			so in bootstrap.js do
+			var gBgComm = new Comm.server.webext();
+			*/
+
+			var type = 'webext';
+			var category = 'server';
+			var scope = gCommScope;
+			Comm[category].instances[type].push(this);
+			this.unreged = false;
+			var messager_method = 'copyMessage';
+
+			this.nextcbid = 1;
+			this.callbackReceptacle = {};
+			this.reportProgress = function(aProgressArg) {
+				aProgressArg.__PROGRESS = 1;
+				this.THIS[messager_method](this.cbid, aProgressArg);
+			};
+
+			this[messager_method] = function(aMethod, aArg, aCallback) {
+				// console.log('Comm.'+category+'.'+type+' - in messager_method:', aMessageManager, aMethod, aArg, aCallback);
+
+				var cbid = null;
+				if (typeof(aMethod) == 'number') {
+					// this is a response to a callack waiting in framescript
+					cbid = aMethod;
+					aMethod = null;
+				} else {
+					if (aCallback) {
+						cbid = this.nextcbid++;
+						this.callbackReceptacle[cbid] = aCallback;
+					}
+				}
+
+				port.postMessage({
+					method: aMethod,
+					arg: aArg,
+					cbid: cbid
+				});
+			}.bind(this);
+
+			this.listener = function handleMessage(payload) {
+				console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); // , 'messageManager:', messageManager, 'browser:', browser, 'e:', e);
+
+				if (payload.method) {
+					if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
+					var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid}) : undefined, this);
+					// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
+					if (payload.cbid) {
+						if (rez_scope && rez_scope.constructor.name == 'Promise') {
+							rez_scope.then(
+								function(aVal) {
+									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
+									this[messager_method](payload.cbid, aVal);
+								}.bind(this),
+								genericReject.bind(null, 'rez_scope', 0)
+							).catch(genericCatch.bind(null, 'rez_scope', 0));
+						} else {
+							this[messager_method](payload.cbid, rez_scope);
+						}
+					}
+				} else if (!payload.method && payload.cbid) {
+					// its a cbid
+					this.callbackReceptacle[payload.cbid](payload.arg, this);
+					if (payload.arg && !payload.arg.__PROGRESS) {
+						delete this.callbackReceptacle[payload.cbid];
+					}
+				}
+				else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
+			}.bind(this);
+
+			this.unregister = function() {
+				if (this.unreged) { return }
+				Comm.unregister_generic(category, type, this);
+
+				// no need for shtudown of this port as per irc -
+					// 11:39:47 	<@John-Frum>	noit: No, they're shutdown automatically when the main extension shuts down
+
+				// port does have .disconnect() though
+			};
+
+			var onConnect = function(aPort) {
+				port = aPort;
+				// console.log('ok webext connection made, port:', port);
+				port.onMessage.addListener(this.listener);
+			}.bind(this);
+
+			var port;
+			aWebextEngine.startup().then(api => {
+				var { browser } = api;
+				// console.log('ok webext started up, waiting for onConnect');
+				browser.runtime.onConnect.addListener(onConnect);
+			});
 		},
 		// NOTE: these below should be executed OUT of the scope. like `new Comm.server.worker()` should be executed in bootstrap or another worker
 		worker: function(aWorkerPath, onBeforeInit, onAfterInit, onBeforeTerminate, aWebWorker) {
@@ -711,7 +723,7 @@ var Comm = {
 				postPortsGot();
 			}
 		},
-		instances: {worker:[], framescript:[], content:[], webexttabs:[], webextexe:[], webextports:[]},
+		instances: {worker:[], framescript:[], content:[], webextexe:[], webextports:[], webext:[]},
 		unregAll: function(aType) {
 			var category = 'server';
 			var type_instances_clone = Comm[category].instances[aType].slice(); // as the .unregister will remove it from the original array
@@ -728,12 +740,12 @@ var Comm = {
 			// TODO: probably handle .onDisconnect of the port
 			/*
 				used as setup from content scripts/popup.js etc
-				var gBgComm = new Comm.client.webexttabs();
+				var gBgComm = new Comm.client.webextports();
 			*/
 			this.porttype = aPortType || 'general';
 			this.portname = this.porttype + '-' + Math.random();
 
-			var type = 'webexttabs';
+			var type = 'webextports';
 			var category = 'client';
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
@@ -820,12 +832,12 @@ var Comm = {
 			port.onMessage.addListener(this.listener);
 			port.onDisconnect.addListener(this.disconnector);
 		},
-		webexttabs: function(aChannelId) {
+		webext: function(aChannelId) {
 			/*
-				used as setup from content scripts/popup.js etc
-				var gBgComm = new Comm.client.webexttabs();
+				used as setup from background.js
+				var gBsComm = new Comm.client.webext();
 			*/
-			var type = 'webexttabs';
+			var type = 'webext';
 			var category = 'client';
 			var scope = gCommScope;
 			Comm[category].instances[type].push(this);
@@ -852,7 +864,7 @@ var Comm = {
 					}
 				}
 
-				chrome.runtime.sendMessage({
+				port.postMessage({
 					method: aMethod,
 					arg: aArg,
 					cbid: cbid
@@ -892,10 +904,11 @@ var Comm = {
 			this.unregister = function() {
 				if (this.unreged) { return }
 				Comm.unregister_generic(category, type, this);
-				chrome.runtime.onMessage.removeListener(this.listener);
+				port.onMessage.removeListener(this.listener);
 			};
 
-			chrome.runtime.onMessage.addListener(this.listener);
+			var port = browser.runtime.connect({ name:'webext' });
+			port.onMessage.addListener(this.listener);
 		},
 		// these should be excuted in the respective scope, like `new Comm.client.worker()` in worker, framescript in framescript, content in content
 		worker: function() {
@@ -1206,7 +1219,7 @@ var Comm = {
 
 			window.addEventListener('message', winMsgListener, false);
 		},
-		instances: {worker:[], framescript:[], content:[], webexttabs:[]},
+		instances: {worker:[], framescript:[], content:[], webextports:[], webext:[]},
 		unregAll: function(aType) {
 			var category = 'client';
 			var type_instances_clone = Comm[category].instances[aType].slice(); // as the .unregister will remove it from the original array
@@ -1359,7 +1372,9 @@ var CommHelper = {
 		callInMainworker: Comm.callInX.bind(null, 'gWkComm', null),
 		callInContent1: Comm.callInX.bind(null, 'gBlahComm1', null),
 		callInContentinframescript: Comm.callInX.bind(null, 'gFsComm', 'callInContent'),
-		callInFramescript: Comm.callInX.bind(null, 'gFsComm', null)
+		callInFramescript: Comm.callInX.bind(null, 'gFsComm', null),
+		callInBackground: Comm.callInX2.bind(null, 'gBgComm', null, null),
+		callInExe: Comm.callInX2.bind(null, 'gBgComm', 'gExeComm', null)
 	},
 	mainworker: {
 		callInBootstrap: Comm.callInX.bind(null, 'gBsComm', null),
