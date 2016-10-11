@@ -318,13 +318,15 @@ var Comm = {
 					// console.log('ok webext connection made, port:', port);
 					port.onMessage.addListener(this.listener);
 					browser.runtime.onConnect.removeListener(onConnect);
+					browser = null;
 				}
 				else { console.warn('name of aPort coming to Comm.server.webext IS NOT bootstrap-comm it is:', aPort.name)}
 			}.bind(this);
 
 			var port;
+			var browser;
 			aWebextEngine.startup().then(api => {
-				var { browser } = api;
+				browser = api.browser;
 				// console.log('ok webext started up, waiting for onConnect');
 				browser.runtime.onConnect.addListener(onConnect);
 			});
