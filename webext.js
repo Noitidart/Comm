@@ -174,6 +174,16 @@ var Comm = {
 			this.listener = function handleMessage(payload) {
 				console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); // , 'messageManager:', messageManager, 'browser:', browser, 'e:', e);
 
+				if (!connected) {
+					if (payload == 'CONNECT_CONFIRMATION') { // crossfile-link994844
+						connected = true;
+						port.onDisconnect.removeListener(failedConnect);
+						if (onConnect) setTimeout(onConnect, 0); // need the setTimeout, because if in `onConnect` user calls `callInExe` it will give undefined apparently as the `= new ` has not yet completed
+					}
+					else { console.error('has not proven connection yet by sending string of "connected"!') }
+					return;
+				}
+
 				if (payload.method) {
 					if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
 					var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid}) : undefined, this);
@@ -207,23 +217,24 @@ var Comm = {
 
 				if (port) {
 					// because `unregister` gets called when it fails to connect
-					port.disconnect();
+					if (connected) port.disconnect();
 
 					// port.onMessage.removeListener(this.listener); // no need to `removeListener` as I did `disconnect`
 				}
 			};
 
+			var connected = false;
 			var doConnect = function() {
-				try {
-					port = browser.runtime.connectNative(aAppName);
+				port = chrome.runtime.connectNative(aAppName);
+				port.onMessage.addListener(this.listener);
+				port.onDisconnect.addListener(failedConnect);
+			}.bind(this);
 
-					port.onMessage.addListener(this.listener);
-
-					if (onConnect) setTimeout(onConnect, 0); // need the setTimeout, because if in `onConnect` user calls `callInExe` it will give undefined apparently as the `= new ` has not yet completed
-				} catch (ex) {
-					this.unregister();
-					if (onFailConnect) onFailConnect(ex);
-				}
+			var failedConnect = function() {
+				console.error('failed to connect port to native!, arguments:', arguments, 'chrome.runtime.lastError:', chrome.runtime.lastError);
+				this.unregister();
+				var reason; // reason is unknown, chrome.runtime.lastError is null
+				if (onFailConnect) onFailConnect(reason);
 			}.bind(this);
 
 			var port;
