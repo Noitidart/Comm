@@ -230,11 +230,11 @@ var Comm = {
 				port.onDisconnect.addListener(failedConnect);
 			}.bind(this);
 
-			var failedConnect = function() {
+			var failedConnect = function(reason) {
 				console.error('failed to connect port to native!, arguments:', arguments, 'chrome.runtime.lastError:', chrome.runtime.lastError);
 				this.unregister();
-				var reason; // reason is unknown, chrome.runtime.lastError is null
-				if (onFailConnect) onFailConnect(reason);
+				// var reason; // reason is unknown, chrome.runtime.lastError is null
+				if (onFailConnect) onFailConnect((reason && typeof(reason) == 'object') ? reason.error : reason);
 			}.bind(this);
 
 			var port;
