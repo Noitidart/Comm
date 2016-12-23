@@ -126,6 +126,10 @@ var Comm = {
 				chrome.runtime.onConnect.removeListener(this.connector);
 			};
 
+            this.getPort = function(aPortName) {
+                return ports[aPortName];
+            };
+
 			chrome.runtime.onConnect.addListener(this.connector);
 		},
 		webextexe: function(aAppName, onConnect, onFailConnect) {
@@ -844,6 +848,9 @@ var Comm = {
 				port.disconnect();
 			};
 
+            this.getPort = function() {
+                return port;
+            };
 
 			var port = chrome.runtime.connect({name:this.portname});
 			port.onMessage.addListener(this.listener);
