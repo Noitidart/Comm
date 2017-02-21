@@ -82,8 +82,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](portname, payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(null, 'rez_scope', 0)
-							).catch(genericCatch.bind(null, 'rez_scope', 0));
+								genericReject.bind(rez_scope, 'rez_scope', 0)
+							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
 						} else {
 							this[messager_method](portname, payload.cbid, rez_scope);
 						}
@@ -199,8 +199,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(null, 'rez_scope', 0)
-							).catch(genericCatch.bind(null, 'rez_scope', 0));
+								genericReject.bind(rez_scope, 'rez_scope', 0)
+							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -235,10 +235,11 @@ var Comm = {
 			}.bind(this);
 
 			var failedConnect = function(reason) {
-				console.error('failed to connect port to native!, arguments:', arguments, 'chrome.runtime.lastError:', chrome.runtime.lastError);
+				console.error('failed to connect port to native!, arguments:', arguments, 'chrome.runtime.lastError:', chrome.runtime.lastError, 'arguments[0].error:', (arguments[0] && arguments[0].error ? arguments[0].error : 'NONE'));
 				this.unregister();
 				// var reason; // reason is unknown, chrome.runtime.lastError is null
-				if (onFailConnect) onFailConnect((reason && typeof(reason) == 'object') ? reason.error : reason);
+                var error = reason.error;
+				if (onFailConnect) onFailConnect(error);
 			}.bind(this);
 
 			var port;
@@ -301,8 +302,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(null, 'rez_scope', 0)
-							).catch(genericCatch.bind(null, 'rez_scope', 0));
+								genericReject.bind(rez_scope, 'rez_scope', 0)
+							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -431,8 +432,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(null, 'rez_scope', 0)
-							).catch(genericCatch.bind(null, 'rez_scope', 0));
+								genericReject.bind(rez_scope, 'rez_scope', 0)
+							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -506,100 +507,12 @@ var Comm = {
 				}
 			};
 		},
-		framescript: function(aChannelId) {
-			/* global Services.mm */
+		content: function(aContentWindow, onHandshakeComplete) {
+            var msgchan = new MessageChannel();
+            console.log('msgchan:', msgchan);
+            var aPort1 = msgchan.port1;
+            var aPort2 = msgchan.port2;
 
-			var type = 'framescript';
-			var category = 'server';
-			var scope = gCommScope;
-			Comm[category].instances[type].push(this);
-			this.unreged = false;
-			var messager_method = 'copyMessage';
-
-			this.nextcbid = 1;
-			this.callbackReceptacle = {};
-			this.reportProgress = function(aProgressArg) {
-				aProgressArg.__PROGRESS = 1;
-				this.THIS[messager_method](this.messageManager, this.cbid, aProgressArg);
-			};
-
-			this[messager_method] = function(aMessageManager, aMethod, aArg, aCallback) {
-				// console.log('Comm.'+category+'.'+type+' - in messager_method:', aMessageManager, aMethod, aArg, aCallback);
-
-				var cbid = null;
-				if (typeof(aMethod) == 'number') {
-					// this is a response to a callack waiting in framescript
-					cbid = aMethod;
-					aMethod = null;
-				} else {
-					if (aCallback) {
-						cbid = this.nextcbid++;
-						this.callbackReceptacle[cbid] = aCallback;
-					}
-				}
-
-				aMessageManager.sendAsyncMessage(aChannelId, {
-					method: aMethod,
-					arg: aArg,
-					cbid
-				});
-			};
-
-			this.listener = {
-				receiveMessage: function(e) {
-					var messageManager = e.target.messageManager;
-					var browser = e.target;
-					var payload = e.data;
-					console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); // , 'messageManager:', messageManager, 'browser:', browser, 'e:', e);
-
-					if (!messageManager) {
-						console.warn('Comm.'+category+'.'+type+' - ignoring as no messageManager, e.target:', e.target);
-						return;
-					}
-
-					if (payload.method) {
-						if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
-						var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid, messageManager}) : undefined, this, messageManager, browser);  // only on bootstrap side, they get extra 2 args
-						// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
-						if (payload.cbid) {
-							if (rez_scope && rez_scope.constructor.name == 'Promise') {
-								rez_scope.then(
-									function(aVal) {
-										// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
-										this[messager_method](messageManager, payload.cbid, aVal);
-									}.bind(this),
-									genericReject.bind(null, 'rez_scope', 0)
-								).catch(genericCatch.bind(null, 'rez_scope', 0));
-							} else {
-								this[messager_method](messageManager, payload.cbid, rez_scope);
-							}
-						}
-					} else if (!payload.method && payload.cbid) {
-						// its a cbid
-						this.callbackReceptacle[payload.cbid](payload.arg, this, messageManager, browser); // 093016 i think this is a fix i needed to make, but i never encountered an issue with it
-						if (payload.arg && !payload.arg.__PROGRESS) {
-							delete this.callbackReceptacle[payload.cbid];
-						}
-					}
-					else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
-				}.bind(this)
-			};
-
-			this.unregister = function() {
-				if (this.unreged) { return }
-				Comm.unregister_generic(category, type, this);
-
-				// kill framescripts
-				Services.mm.broadcastAsyncMessage(aChannelId, {
-					method: 'uninit'
-				});
-
-				Services.mm.removeMessageListener(aChannelId, this.listener);
-			};
-
-			Services.mm.addMessageListener(aChannelId, this.listener);
-		},
-		content: function(aContentWindow, onHandshakeComplete, aPort1, aPort2, aPortGenerationWithWorker) {
 			var type = 'content';
 			var category = 'server';
 			var scope = gCommScope;
@@ -680,8 +593,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(null, 'rez_scope', 0)
-							).catch(genericCatch.bind(null, 'rez_scope', 0));
+								genericReject.bind(rez_scope, 'rez_scope', 0)
+							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -710,39 +623,7 @@ var Comm = {
 				}, '*', [aPort2]);
 			}.bind(this);
 
-			if (!aPort1) {
-				if (aPortGenerationWithWorker) {
-					console.log('Comm.'+category+'.'+type+' - generating ports by creating worker');
-					var portWorkerBlob = new Blob(['var msgchan = new MessageChannel(); self.postMessage({ port1: msgchan.port1,port2: msgchan.port2 }, [msgchan.port1, msgchan.port2]);'], { type:'plain/text' });
-					var portWorkerBlobURL = URL.createObjectURL(portWorkerBlob);
-					var portWorker = new Worker(portWorkerBlobURL);
-					portWorker.onmessage = function(e) {
-						aPort1 = e.data.port1;
-						aPort2 = e.data.port2;
-						postPortsGot();
-
-						portWorker.terminate();
-						URL.revokeObjectURL(portWorkerBlobURL);
-					};
-				} else {
-					console.log('Comm.'+category+'.'+type+' - generating ports by tapping `content` scope');
-					var hidwin = Services.appShell.hiddenDOMWindow;
-					var onhidwinload = function() {
-						hidwin.removeEventListener('load', onhidwinload, false);
-						var msgchan = new hidwin.MessageChannel();
-						aPort1 = msgchan.port1;
-						aPort2 = msgchan.port2;
-						postPortsGot();
-					};
-					if (hidwin.document.readyState == 'complete') {
-						onhidwinload();
-					} else {
-						hidwin.addEventListener('load', onhidwinload, false);
-					}
-				}
-			} else {
-				postPortsGot();
-			}
+			postPortsGot();
 		},
 		instances: {worker:[], framescript:[], content:[], webextexe:[], webextports:[], webext:[]},
 		unregAll: function(aType) {
@@ -815,8 +696,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(null, 'rez_scope', 0)
-							).catch(genericCatch.bind(null, 'rez_scope', 0));
+								genericReject.bind(rez_scope, 'rez_scope', 0)
+							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -909,8 +790,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(null, 'rez_scope', 0)
-							).catch(genericCatch.bind(null, 'rez_scope', 0));
+								genericReject.bind(rez_scope, 'rez_scope', 0)
+							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -1012,8 +893,8 @@ var Comm = {
 									console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(null, 'rez_scope', 0)
-							).catch(genericCatch.bind(null, 'rez_scope', 0));
+								genericReject.bind(rez_scope, 'rez_scope', 0)
+							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -1038,85 +919,6 @@ var Comm = {
 			};
 
 			self.onmessage = this.listener;
-		},
-		framescript: function(aChannelId) {
-			var type = 'framescript';
-			var category = 'client';
-			var scope = gCommScope;
-			Comm[category].instances[type].push(this);
-			this.unreged = false;
-			var messager_method = 'copyMessage';
-
-			this.nextcbid = 1;
-			this.callbackReceptacle = {};
-			this.reportProgress = function(aProgressArg) {
-				aProgressArg.__PROGRESS = 1;
-				this.THIS[messager_method](this.cbid, aProgressArg);
-			};
-
-			this[messager_method] = function(aMethod, aArg, aCallback) {
-				var cbid = null;
-				if (typeof(aMethod) == 'number') {
-					// this is a response to a callack waiting in framescript
-					cbid = aMethod;
-					aMethod = null;
-				} else {
-					if (aCallback) {
-						cbid = this.nextcbid++;
-						this.callbackReceptacle[cbid] = aCallback;
-					}
-				}
-
-				sendAsyncMessage(aChannelId, {
-					method: aMethod,
-					arg: aArg,
-					cbid: cbid
-				});
-			}.bind(this);
-
-			this.listener = {
-				receiveMessage: function(e) {
-					var messageManager = e.target.messageManager;
-					var browser = e.target;
-					var payload = e.data;
-					console.log('Comm.'+category+'.'+type+' - incoming, payload:', payload); //, 'e:', e);
-					// console.log('this in receiveMessage bootstrap:', this);
-
-					if (payload.method) {
-						if (!(payload.method in scope)) { console.error('method of "' + payload.method + '" not in scope'); throw new Error('method of "' + payload.method + '" not in scope') }  // dev line remove on prod
-						var rez_scope = scope[payload.method](payload.arg, payload.cbid ? this.reportProgress.bind({THIS:this, cbid:payload.cbid}) : undefined, this);
-						// in the return/resolve value of this method call in scope, (the rez_blah_call_for_blah = ) MUST NEVER return/resolve an object with __PROGRESS:1 in it
-						if (payload.cbid) {
-							if (rez_scope && rez_scope.constructor.name == 'Promise') {
-								rez_scope.then(
-									function(aVal) {
-										console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
-										this[messager_method](payload.cbid, aVal);
-									}.bind(this),
-									genericReject.bind(null, 'rez_scope', 0)
-								).catch(genericCatch.bind(null, 'rez_scope', 0));
-							} else {
-								this[messager_method](payload.cbid, rez_scope);
-							}
-						}
-					} else if (!payload.method && payload.cbid) {
-						// its a cbid
-						this.callbackReceptacle[payload.cbid](payload.arg, messageManager, browser, this);
-						if (payload.arg && !payload.arg.__PROGRESS) {
-							delete this.callbackReceptacle[payload.cbid];
-						}
-					}
-					else { console.error('Comm.'+category+'.'+type+' - invalid combination. method:', payload.method, 'cbid:', payload.cbid, 'payload:', payload); throw new Error('Comm.'+category+'.'+type+' - invalid combination'); }
-				}.bind(this)
-			};
-
-			this.unregister = function() {
-				if (this.unreged) { return }
-				Comm.unregister_generic(category, type, this);
-				removeMessageListener(aChannelId, this.listener);
-			};
-
-			addMessageListener(aChannelId, this.listener);
 		},
 		content: function(onHandshakeComplete) {
 			var type = 'content';
@@ -1201,8 +1003,8 @@ var Comm = {
 									console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(null, 'rez_scope', 0)
-							).catch(genericCatch.bind(null, 'rez_scope', 0));
+								genericReject.bind(rez_scope, 'rez_scope', 0)
+							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
