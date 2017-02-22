@@ -82,8 +82,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](portname, payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(rez_scope, 'rez_scope', 0)
-							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
+								genericReject.bind(null, 'rez_scope', rez_scope)
+							).catch(genericCatch.bind(null, 'rez_scope', rez_scope));
 						} else {
 							this[messager_method](portname, payload.cbid, rez_scope);
 						}
@@ -199,8 +199,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(rez_scope, 'rez_scope', 0)
-							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
+								genericReject.bind(null, 'rez_scope', rez_scope)
+							).catch(genericCatch.bind(null, 'rez_scope', rez_scope));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -302,8 +302,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(rez_scope, 'rez_scope', 0)
-							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
+								genericReject.bind(null, 'rez_scope', rez_scope)
+							).catch(genericCatch.bind(null, 'rez_scope', rez_scope));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -432,8 +432,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(rez_scope, 'rez_scope', 0)
-							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
+								genericReject.bind(null, 'rez_scope', rez_scope)
+							).catch(genericCatch.bind(null, 'rez_scope', rez_scope));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -593,8 +593,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(rez_scope, 'rez_scope', 0)
-							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
+								genericReject.bind(null, 'rez_scope', rez_scope)
+							).catch(genericCatch.bind(null, 'rez_scope', rez_scope));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -696,8 +696,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(rez_scope, 'rez_scope', 0)
-							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
+								genericReject.bind(null, 'rez_scope', rez_scope)
+							).catch(genericCatch.bind(null, 'rez_scope', rez_scope));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -790,8 +790,8 @@ var Comm = {
 									// console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(rez_scope, 'rez_scope', 0)
-							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
+								genericReject.bind(null, 'rez_scope', rez_scope)
+							).catch(genericCatch.bind(null, 'rez_scope', rez_scope));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -893,8 +893,8 @@ var Comm = {
 									console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(rez_scope, 'rez_scope', 0)
-							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
+								genericReject.bind(null, 'rez_scope', rez_scope)
+							).catch(genericCatch.bind(null, 'rez_scope', rez_scope));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
@@ -1003,8 +1003,8 @@ var Comm = {
 									console.log('Comm.'+category+'.'+type+' - Fullfilled - rez_scope - ', aVal);
 									this[messager_method](payload.cbid, aVal);
 								}.bind(this),
-								genericReject.bind(rez_scope, 'rez_scope', 0)
-							).catch(genericCatch.bind(rez_scope, 'rez_scope', 0));
+								genericReject.bind(null, 'rez_scope', rez_scope)
+							).catch(genericCatch.bind(null, 'rez_scope', rez_scope));
 						} else {
 							this[messager_method](payload.cbid, rez_scope);
 						}
