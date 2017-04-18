@@ -1,6 +1,6 @@
 {
   "name": "comm-msg",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Communication layer between scopes that you can transfer strings or transferrables between. Currently supports WebExtension via sendAsyncMessage, Web Workers via postMessage, windows via postMessage.",
   "main": "src/index.js",
   "scripts": {
