@@ -1,5 +1,9 @@
 'use strict';
 
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+
 var _freeze = require('babel-runtime/core-js/object/freeze');
 
 var _freeze2 = _interopRequireDefault(_freeze);
@@ -1043,3 +1047,5 @@ function genericCatch(aPromiseName, aPromiseToReject, aCaught) {
 		aPromiseToReject.reject(rejObj);
 	}
 }
+
+exports.default = Comm;

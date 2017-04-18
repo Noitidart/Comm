@@ -879,3 +879,5 @@ function genericCatch(aPromiseName, aPromiseToReject, aCaught) {
 		aPromiseToReject.reject(rejObj);
 	}
 }
+
+export default Comm
