@@ -1,0 +1,24 @@
+{
+    "env": {
+        "browser": true,
+        "node": true
+    },
+    "parserOptions": {
+        "ecmaVersion": 6,
+        "sourceType": "module",
+        "experimentalObjectRestSpread": true
+    },
+    "extends": [
+        "eslint:recommended",
+        "plugin:react/recommended"
+    ],
+    "parser": "babel-eslint",
+    "rules": {
+        "strict": 0,
+        "no-console": 0,
+        "no-extra-parens": 2,
+        "eqeqeq": 2,
+        "no-useless-escape": 2,
+        "require-yield": 0
+    }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "comm-msg",
+  "version": "1.0.0",
+  "description": "Communication layer between scopes that you can transfer strings or transferrables between. Currently supports WebExtension via sendAsyncMessage, Web Workers via postMessage, windows via postMessage.",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src -d dist",
+    "lint": "eslint src/webext.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Noitidart/Comm.git"
+  },
+  "keywords": [
+    "postMessage",
+    "sendAsyncMessage"
+  ],
+  "author": "Noitidart <noitidart@gmail.com>",
+  "license": "MPL-2.0",
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-core": "^6.23.1",
+    "babel-eslint": "^6.1.2",
+    "babel-plugin-transform-class-properties": "^6.23.0",
+    "babel-plugin-transform-object-rest-spread": "^6.23.0",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-preset-es2015": "^6.22.0",
+    "babel-preset-es2016": "^6.22.0",
+    "babel-preset-es2017": "^6.22.0",
+    "eslint": "^3.19.0",
+    "eslint-plugin-react": "^6.10.0"
+  },
+  "dependencies": {
+    "babel-runtime": "^6.23.0"
+  },
+  "bugs": {
+    "url": "https://github.com/Noitidart/Comm/issues"
+  },
+  "homepage": "https://github.com/Noitidart/Comm#readme"
+}
